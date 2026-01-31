@@ -1,0 +1,170 @@
+
+body {
+    font-family: 'Times New Roman', Times, serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+h1, h2 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow-x: auto; 
+}
+
+th, td {
+    padding: 15px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+.botonpago{
+    border-radius: 10px;
+    border: none;
+    padding:3px 10px ;
+    background-color: rgb(0, 0, 128);; 
+    color: white;
+}
+.botondelete{
+    border-radius: 10px;
+    border: none;
+    padding:3px 10px ;
+    background-color: rgb(255, 0, 0);; 
+    color: white;
+}
+th {
+    background-color: rgb(0, 0, 128);; 
+    color: white;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+td {
+    font-size: 14px;
+    color: #555;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+tr:hover {
+    background-color: #c6cbf6; /
+}
+
+
+td[colspan="5"] {
+    text-align: center;
+    font-style: italic;
+    color: #888;
+}
+
+
+.formulariocliente {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #333;
+}
+
+input, select, .botoncliente {
+    width: 200px;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.botoncliente {
+    background-color: rgb(0, 0, 128);;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.botoncliente:hover {
+    background-color:  rgb(11, 11, 255);
+}
+
+
+
+/* Adaptación para móviles */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    h1, h2 {
+        font-size: 30px;
+        margin-bottom: 15px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto; 
+        border: 0;
+    }
+
+    th, td {
+        font-size: 12px;
+        padding: 10px;
+    }
+
+    form {
+        padding: 15px;
+    }
+
+    label {
+        font-size: 14px;
+    }
+
+    input, select, .botoncliente {
+        font-size: 12px;
+        padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    h1, h2 {
+        font-size: 30px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    th {
+        padding: 4px;
+    }
+     td{
+        padding: 2px;
+     }
+    .botoncliente {
+        font-size: 12px;
+        padding: 10px;
+    }
+}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes</title>
+    <link rel="stylesheet" href="/public/css/index.css">
+    <!-- Incluye Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="menu-icon">
+            <div class="menu-icon-bar"></div>
+            <div class="menu-icon-bar"></div>
+            <div class="menu-icon-bar"></div>
+        </div>
+        <nav class="nav-menu">
+            <a href="/home">Inicio</a>
+            <a href="#">Tutorial</a>
+            <a href="/historial/cuentas">historial</a>
+        </nav>
+        <div class="registroinicio">
+            <% if (nombreUsuario) { %>
+                <span><%= nombreUsuario %></span>
+                <a href="/logout">Cerrar sesión</a>
+            <% } else { %>
+                <a href="/login">Iniciar sesión</a>
+                <a href="/registro">Crear cuenta</a>
+            <% } %>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <% if (nombreUsuario) { %>
+            <h1 class="main-title">Clientes</h1>
+            <div class="search-container">
+                <form action="/home" method="GET">
+                    <input 
+                        type="text" 
+                        name="filtro"
+                        class="search-input" 
+                        placeholder="Buscar por nombre, dirección o teléfono" 
+                        value="<%= filtro || '' %>" 
+                    />
+                    <button type="submit" class="search-button">
+                        <i class="fas fa-search search-icon"></i>
+                    </button>
+                </form>
+            </div>
+    
+            <% if (clientes && clientes.length) { %>
+                <div class="clientes-container">
+                    <% clientes.forEach(cliente => { %>
+                        <div class="cliente-card">
+                            <p><strong>Nombre:</strong> <%= cliente.nombre %></p>
+                            <p><strong class="direccion">Dirección:</strong> <%= cliente.direccion %></p>
+                            <p><strong class="telefono">Teléfono:</strong> <%= cliente.telefono %></p>
+                            <a href="/clientes/<%= cliente.id %>" class="ver-detalle">Ver detalles</a>
+                            <button class="menu-cliente" onclick="mostrarMenu(this)">&#x22EE;</button>                                                    
+                            <button class="eliminar-cliente" onclick="eliminarCliente(<%= cliente.id %>)" style="display:none;">Eliminar</button>
+                            <p>Bidones adeudados: <%= cliente.bidones_adeudados %></p>
+
+                            <!-- Formulario para actualizar los bidones adeudados -->
+                            <form action="/clientes/<%= cliente.id %>/bidones" method="POST">     
+                                <label for="bidonesAdeudados">Actualizar bidones:</label>                    
+                                <input type="number" name="bidonesAdeudados" min="0" required class="inputbidon">
+                                <button class="actualizarbidon" type="submit">Actualizar</button>
+                            </form>
+                        </div>
+                    <% }); %>
+                </div>
+                <div class="pagination">
+                    <% if (page > 1) { %>
+                        <a href="/home?page=<%= page - 1 %>&filtro=<%= filtro %>" class="pagination-arrow"><</a>
+                    <% } %>
+                    <% for (let i = 1; i <= totalPaginas; i++) { %>                                                                    
+                        <a href="/home?page=<%= i %>&filtro=<%= filtro %>" class="<%= i == page ? 'active' : '' %>"><%= i %></a>
+                    <% } %>
+                    <% if (page < totalPaginas) { %>
+                        <a href="/home?page=<%= page + 1 %>&filtro=<%= filtro %>" class="pagination-arrow">></a>
+                    <% } %>
+                </div>
+            <% } else { %>
+                <p class="no-clientes">No hay clientes registrados.</p>
+            <% } %>
+        <% } else { %>
+            <p class="no-sesion">Debes iniciar sesión para ver la lista de clientes.</p>
+        <% } %>
+    </main>
+     
+    <div class="agregarcliente">
+        <a href="/clientes">
+            <i class="fas fa-plus"></i>
+        </a>
+    </div>
+    <script>
+        const menuIcon = document.querySelector('.menu-icon');
+        const navMenu = document.querySelector('.nav-menu');
+        const mainContainer = document.querySelector('.main-container');
+    
+        // Toggle the navigation menu and adjust the margin-top of the main container
+        menuIcon.addEventListener('click', () => {
+            navMenu.classList.toggle('show');
+            mainContainer.style.marginTop = navMenu.classList.contains('show')
+                ? 'calc(80px + 60px)' // Adjust margin when the menu is shown
+                : '0px';
+        });
+    
+        // Show or hide the delete button for a client
+        function mostrarMenu(button) {
+            const eliminarButton = button.nextElementSibling;
+            eliminarButton.style.display = eliminarButton.style.display === 'none' ? 'block' : 'none';
+        }
+    
+        // Delete client using a DELETE request
+        function eliminarCliente(clienteId) {
+            fetch(`/clientes/${clienteId}`, {
+                method: 'DELETE',
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error al eliminar el cliente');
+                }
+            });
+        }
+    </script>
+    
+</body>
+</html>

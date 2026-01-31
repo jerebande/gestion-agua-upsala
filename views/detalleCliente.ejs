@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle Cliente</title>
+    <link rel="stylesheet" href="/public/css/detallecliente.css">
+</head>
+<body>
+    <h2>Agregar Nueva Cuenta</h2>
+    <form class="formulariocliente" action="/clientes/<%= cliente.id %>/cuentas" method="POST">
+        <label for="estado_pago">Estado de Pago:</label>
+        <select id="estado_pago" name="estado_pago" required>
+            <option value="1">Pagado</option>
+            <option value="0">Fiado</option>
+            <option value="2">Transferido</option> <!-- Nueva opción -->
+        </select>
+        
+        <br>
+        <label for="cantidad_bidones">Cantidad de Bidones:</label>
+        <input type="number" id="cantidad_bidones" name="cantidad_bidones" min="1" required>
+        <br>
+        <label for="precio_bidon">Precio por Bidón:</label>
+        <input type="number" id="precio_bidon" name="precio_bidon" step="0.01" min="0" required>
+        <br>
+        <button class="botoncliente" type="submit">Agregar Cuenta</button>
+    </form>
+
+    <h2>Cuentas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Estado de Pago</th>
+                <th>Cantidad de Bidones</th>
+                <th>Total</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (cuentas && cuentas.length) { %>
+                <% cuentas.forEach(cuenta => { %>
+                    <tr>
+                        <td>
+                            <% if (cuenta.estado_pago == 1) { %> Pagado
+                            <% } else if (cuenta.estado_pago == 0) { %> Fiado
+                            <% } else { %> Transferido
+                            <% } %>
+                        </td>
+                        <td><%= cuenta.cantidad_bidones %></td>
+                        <td>$<%= cuenta.total.toFixed(2) %></td>
+                        <td><%= new Date(cuenta.fecha_publicacion).toLocaleString() %></td>
+                        <td>
+                            <% if (cuenta.estado_pago == 0) { %> <!-- Solo mostrar si está fiado -->
+                                <form class="boton" action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/actualizarEstadoPago" method="POST">
+                                    <input type="hidden" name="estado_pago" value="1">
+                                    <button class="botonpago" type="submit"> Pagado</button>
+                                </form>
+                            <% } else if (cuenta.estado_pago == 1) { %> <!-- Solo mostrar si está pagado -->
+                                <form class="boton" action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/eliminar" method="POST">
+                                    <button class="botondelete" type="submit">Eliminar</button>
+                                </form>
+                            <% } else { %> <!-- Solo mostrar si está transferido -->
+                                <form class="boton" action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/eliminar" method="POST">
+                                    <button class="botondelete" type="submit">Eliminar</button>
+                                </form>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <tr>
+                    <td colspan="5">No hay cuentas registradas.</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</body>
+</html>

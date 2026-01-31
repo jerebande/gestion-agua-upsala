@@ -1,0 +1,17 @@
+{
+  "name": "agua",
+  "version": "1.0.0",
+  "description": "xdddddd",
+  "main": "app.js",
+  "scripts": {
+    "test": "w"
+  },
+  "keywords": [
+    "e"
+  ],
+  "author": "jeremias bandelli",
+  "license": "ISC",
+  "dependencies": {
+    "express-session": "^1.18.1"
+  }
+}

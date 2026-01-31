@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Cuentas</title>
+    <link rel="stylesheet" href="/public/css/historialCuentas.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="menu-icon">
+            <div class="menu-icon-bar"></div>
+            <div class="menu-icon-bar"></div>
+            <div class="menu-icon-bar"></div>
+        </div>
+        <nav class="nav-menu">
+            <a href="/home">Inicio</a>
+            <a href="#">Tutorial</a>
+            <a href="/historial/cuentas">Historial</a>
+        </nav>
+        <div class="registroinicio">
+            <% if (nombreUsuario) { %>
+                <span><%= nombreUsuario %></span>
+                <a href="/logout">Cerrar sesión</a>
+            <% } else { %>
+                <a href="/login">Iniciar sesión</a>
+                <a href="/registro">Crear cuenta</a>
+            <% } %>
+        </div>
+    </header>
+    <main class="main-container">
+        <h1>Historial de Cuentas</h1>
+        <form action="/historial/cuentas" method="GET">
+            <label for="fecha">Seleccionar Fecha:</label>
+            <input type="date" id="fecha" name="fecha" value="<%= fecha %>">
+            <button type="submit">Buscar</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Estado Pago</th>
+                    <th>cantidad</th>
+                    <th>Total</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (cuentas && cuentas.length) { %>
+                    <% cuentas.forEach(cuenta => { %>
+                        <tr>
+                            <td><%= cuenta.cliente_nombre %></td>
+                            <td>
+                                <% if (cuenta.estado_pago == 1) { %> Pagado
+                                <% } else if (cuenta.estado_pago == 0) { %> Fiado
+                                <% } else { %> Transferido
+                                <% } %>
+                            </td>
+                            <td><%= cuenta.cantidad_bidones %></td>
+                            <td>$<%= cuenta.total %></td>
+                            <td><%= new Date(cuenta.fecha_publicacion).toLocaleString() %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="5">No se encontraron cuentas para esta fecha.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </main>
+    <h3>Total General: $<%= totalGeneral || 0 %></h3>
+    <h3>Total Pagados: $<%= totalPagados || 0 %></h3>
+    <h3>Total Fiados: $<%= totalFiados || 0 %></h3>
+    <h3>Total Transferencias: $<%= totalTransferencias || 0 %></h3>
+    
+    <script>
+        const menuIcon = document.querySelector('.menu-icon');
+        const navMenu = document.querySelector('.nav-menu');
+        const mainContainer = document.querySelector('.main-container');
+    
+        // Toggle the navigation menu and adjust the margin-top of the main container
+        menuIcon.addEventListener('click', () => {
+            navMenu.classList.toggle('show');
+            mainContainer.style.marginTop = navMenu.classList.contains('show')
+                ? 'calc(80px + 60px)' // Adjust margin when the menu is shown
+                : '0px';
+        });
+    
+        // Show or hide the delete button for a client
+        function mostrarMenu(button) {
+            const eliminarButton = button.nextElementSibling;
+            eliminarButton.style.display = eliminarButton.style.display === 'none' ? 'block' : 'none';
+        }
+    
+        // Delete client using a DELETE request
+        function eliminarCliente(clienteId) {
+            fetch(`/clientes/${clienteId}`, {
+                method: 'DELETE',
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error al eliminar el cliente');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

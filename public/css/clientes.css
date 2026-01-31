@@ -1,0 +1,105 @@
+/* styles.css */
+
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header Styles */
+header {
+    background-color: rgb(0, 0, 128);
+    color: #fff;
+    padding: 10px 20px;
+    text-align: center;
+    border-bottom: 4px solid rgb(0, 0, 128);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8em;
+}
+
+/* Main Section Styles */
+main {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+main h2 {
+    font-size: 1.6em;
+    margin-bottom: 20px;
+    color:rgb(0, 0, 128);
+    text-align: center;
+}
+
+/* Form Styles */
+form {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%; /* Ensures the form adjusts to the screen size */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+
+form button {
+    width: 100%;
+    background-color: rgb(0, 0, 128);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.agregarcliente {
+   position: sticky;
+   top: 0;
+}
+
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    header h1 {
+        font-size: 1.5em;
+    }
+
+    form {
+        padding: 15px;
+    }
+
+    form input,
+    form button {
+        font-size: 0.9em;
+    }
+
+    main h2 {
+        font-size: 1.4em;
+    }
+}
