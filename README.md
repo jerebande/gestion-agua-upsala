@@ -12,4 +12,10 @@ Control de Envases: Monitoreo en tiempo real de la cantidad de bidones adeudados
 
 Sistema de Cobranza Multimodal: Registro de ingresos clasificados por Efectivo, Transferencia o Fiado.
 
-Módulo de Auditoría Diaria: Historial con cálculo de subtotales y totales generales por día para facilitar el cierre de caja.
+Módulo de Auditoría Diaria: Historial con cálculo de subtotales y totales generales por día para facilitar el cierre de caja.                                         
+
+stack Tecnológico
+Lógica de Servidor: Node.js con Express.
+Base de Datos: MySQL
+
+
