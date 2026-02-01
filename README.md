@@ -1,6 +1,7 @@
 Solución integral para la digitalización y control administrativo de una distribuidora, enfocada en la gestión de cuentas corrientes y logística de envíos.
 
-🚀 Funcionalidades Principales
+ Funcionalidades Principales
+ 
 Gestión de Cartera de Clientes: Registro de domicilio, teléfono y dirección para optimizar la logística de entrega.
 
 Búsqueda Avanzada y Filtrado: Motor de búsqueda dinámico que permite localizar clientes por Nombre, Dirección o Teléfono.
