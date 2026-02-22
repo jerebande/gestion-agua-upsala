@@ -1,6 +1,24 @@
 const conx = require("../database/db");
 
 class UsuarioModel {
+    actualizarPermiso(usuarioId, estado) {
+        return new Promise((resolve, reject) => {
+            const sql = "UPDATE usuarios SET estado_permiso = ? WHERE id = ?";
+            conx.query(sql, [estado, usuarioId], (err, results) => {
+                if (err) return reject(err);
+                resolve(results);
+            });
+        });
+    }
+    obtenerUsuariosPendientes() {
+        return new Promise((resolve, reject) => {
+            const sql = "SELECT id, nombre, gmail, estado_permiso FROM usuarios WHERE rol = 'usuario' AND estado_permiso = 'pendiente'";
+            conx.query(sql, (err, results) => {
+                if (err) return reject(err);
+                resolve(results);
+            });
+        });
+    }
     guardarCliente(cliente) {
         return new Promise((resolve, reject) => {
             const sql = "INSERT INTO clientes (nombre, direccion, telefono, estado_pago) VALUES (?, ?, ?, ?)";
@@ -21,7 +39,7 @@ class UsuarioModel {
         });
     }
 
-    validarUsuario(gmail, contraseña) {
+  validarUsuario(gmail, contraseña) {
         return new Promise((resolve, reject) => {
             const sql = "SELECT * FROM usuarios WHERE gmail = ? AND contraseña = ?";
             conx.query(sql, [gmail, contraseña], (err, results) => {

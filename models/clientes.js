@@ -1,6 +1,47 @@
 const conx = require("../database/db");
 
 class ClienteModel {
+    obtenerTodosLosClientesGlobal() {
+    return new Promise((resolve, reject) => {
+        const sql = `SELECT * FROM clientes`; // Sin WHERE usuario_id
+        conx.query(sql, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+}
+
+obtenerTodosLosClientesFiltrados(filtro) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            SELECT * FROM clientes 
+            WHERE nombre LIKE ? OR direccion LIKE ? OR telefono LIKE ?`;
+        const f = `%${filtro}%`;
+        conx.query(sql, [f, f, f], (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+}
+    obtenerClientesSegunRol(usuarioId, rol) {
+    return new Promise((resolve, reject) => {
+        let sql;
+        let params;
+        
+        if (rol === 'admin') {
+            sql = "SELECT * FROM clientes"; // El admin ve todos
+            params = [];
+        } else {
+            sql = "SELECT * FROM clientes WHERE usuario_id = ?"; // Usuario ve solo los suyos
+            params = [usuarioId];
+        }
+
+        conx.query(sql, params, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+}
     // Actualizar o insertar bidones adeudados al guardar cliente
 async actualizarBidones(clienteId, bidonesAdeudados) {
     return new Promise((resolve, reject) => {

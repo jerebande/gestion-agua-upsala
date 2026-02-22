@@ -4,39 +4,50 @@ const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
 
 class UsuarioController {
-    async home(req, res) {
-        if (!req.session.usuario) {
-            return res.redirect("/login");
-        }
+   async home(req, res) {
+    if (!req.session.usuario) return res.redirect("/login");
 
-        const { filtro, page = 1 } = req.query; // Captura el filtro de búsqueda y la página actual
-        const usuarioId = req.session.usuario.id;
-        const clientesPorPagina = 5; // Número de clientes por página
+    const { filtro, page = 1 } = req.query;
+    const { id: usuarioId, rol } = req.session.usuario;
+    const clientesPorPagina = 5;
 
-        try {
-            // Obtiene todos los clientes, filtrados si filtro no está vacío
-            const todosLosClientes = filtro 
+    try {
+        let todosLosClientes;
+        // El administrador ve todos los clientes; el usuario solo los suyos
+        if (rol === 'admin') {
+            todosLosClientes = filtro 
+                ? await clienteModel.obtenerTodosLosClientesFiltrados(filtro)
+                : await clienteModel.obtenerTodosLosClientesGlobal();
+        } else {
+            todosLosClientes = filtro 
                 ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
                 : await clienteModel.obtenerClientesPorUsuario(usuarioId);
-
-            // Calcula el número total de páginas
-            const totalClientes = todosLosClientes.length;
-            const totalPaginas = Math.ceil(totalClientes / clientesPorPagina);
-
-            // Obtiene los clientes para la página actual
-            const clientes = todosLosClientes.slice((page - 1) * clientesPorPagina, page * clientesPorPagina);
-
-            const nombreUsuario = req.session.usuario.nombre;
-
-            res.render("index", { nombreUsuario, clientes, filtro, page: Number(page), totalPaginas });
-        } catch (error) {
-            console.error("Error al obtener clientes:", error);
-            res.status(500).send("Error del servidor al cargar la página principal.");
         }
+
+        const clientes = todosLosClientes.slice((page - 1) * clientesPorPagina, page * clientesPorPagina);
+        res.render("index", { 
+            nombreUsuario: req.session.usuario.nombre,
+            usuarioRol: rol,
+            clientes, 
+            filtro, 
+            page: Number(page), 
+            totalPaginas: Math.ceil(todosLosClientes.length / clientesPorPagina)
+        });
+    } catch (error) {
+        res.status(500).send("Error del servidor");
     }
-
-
-
+}
+async verInvitaciones(req, res) {
+    if (req.session.usuario?.rol !== 'admin') return res.redirect("/home");
+    const usuariosPendientes = await usuarioModel.obtenerUsuariosPendientes();
+    res.render("invitaciones", { usuariosPendientes });
+}
+async procesarInvitacion(req, res) {
+    const { id } = req.params;
+    const { accion } = req.body;
+    await usuarioModel.actualizarPermiso(id, accion);
+    res.redirect("/admin/invitaciones");
+}
     
     async guardarUsuario(req, res) {
         const { nombre, gmail, contraseña } = req.body;
@@ -90,7 +101,9 @@ class UsuarioController {
             // Crear sesión, asegurándote de incluir el id  
             req.session.usuario = {   
                 id: usuario.id, // Asegúrate de incluir el id  
-                nombre: usuario.nombre   
+                nombre: usuario.nombre,
+                rol: usuario.rol, // Guardar rol en sesión
+                estado_permiso: usuario.estado_permiso // Guardar estado de permiso   
             };  
             console.log("Sesión creada:", req.session.usuario);  
     

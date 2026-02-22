@@ -77,40 +77,24 @@ class ClienteController {
     
     
         async guardarCliente(req, res) {  
-            if (!req.session.usuario) {  
-                return res.redirect("/login");
-            }  
-          
-            const usuarioId = req.session.usuario.id;
-            const { nombre, direccion, telefono } = req.body;
-          
-            if (!nombre || !direccion || !telefono) {  
-                return res.status(400).render("clientes", {  
-                    error: "Todos los campos son obligatorios.",  
-                    clientes: [],  
-                    usuario: req.session.usuario,  
-                });  
-            }  
-          
-            try {  
-                await clienteModel.guardarCliente({  
-                    nombre,  
-                    direccion,  
-                    telefono,  
-                    usuario_id: usuarioId,
-                });  
-                // Redirigir al index.ejs
-                res.redirect("/home");  
-            } catch (error) {  
-                console.error("Error al guardar cliente:", error);  
-                return res.status(500).render("clientes", {  
-                    error: "Error del servidor al guardar cliente.",  
-                    clientes: [],  
-                    usuario: req.session.usuario,  
-                });  
-            }  
-        }
-        
+        if (!req.session.usuario) return res.redirect("/login");
+      
+        const usuarioId = req.session.usuario.id;
+        const { nombre, direccion, telefono } = req.body;
+      
+        try {  
+            // Se asocia el cliente al ID del usuario que lo crea
+            await clienteModel.guardarCliente({  
+                nombre,  
+                direccion,  
+                telefono,  
+                usuario_id: usuarioId,
+            });  
+            res.redirect("/home");  
+        } catch (error) {  
+            res.status(500).send("Error al guardar cliente.");
+        }  
+    }
   
         async listarClientes(req, res) {
             if (!req.session.usuario) {

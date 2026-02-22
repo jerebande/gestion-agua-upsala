@@ -3,7 +3,20 @@ const router = express.Router();
 const UsuarioController = require("../controllers/usuarios");
 const usuarioController = new UsuarioController();
 
+// Vista de usuarios pendientes
+router.get("/admin/invitaciones", (req, res) => usuarioController.verInvitaciones(req, res));
 
+// Aceptar usuario (cambia estado a 'aceptado')
+router.post("/admin/aceptar-usuario/:id", (req, res) => {
+    req.body.accion = 'aceptado';
+    usuarioController.procesarInvitacion(req, res);
+});
+
+// Rechazar usuario (cambia estado a 'rechazado')
+router.post("/admin/rechazar-usuario/:id", (req, res) => {
+    req.body.accion = 'rechazado';
+    usuarioController.procesarInvitacion(req, res);
+});
 router.get("/home", (req, res) => usuarioController.home(req, res));
 
 router.get("/home", (req, res) => {
