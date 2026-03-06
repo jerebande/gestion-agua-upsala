@@ -10,11 +10,12 @@ router.post("/clientes/:id/bidones", clienteController.actualizarBidones.bind(cl
 router.get("/historial/cuentas", clienteController.listarCuentasPorFecha);
 router.get("/clientes", (req, res) => clienteController.listarClientes(req, res));
 router.get("/clientes/:id", (req, res) => clienteController.obtenerClientePorId(req, res));
-
+router.post('/clientes/:id/actualizar-bidones', clienteController.actualizarBidones);
 router.post("/clientes", (req, res) => clienteController.guardarCliente(req, res));
 
 
 router.post("/clientes/:idCliente/cuentas/:idCuenta/actualizarEstadoPago", (req, res) => clienteController.actualizarEstadoPago(req, res));
+router.post('/clientes/:idCliente/cuentas/:idCuenta/pago-parcial', clienteController.registrarPagoParcial.bind(clienteController));
 
 
 

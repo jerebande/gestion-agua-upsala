@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Grupal</title>
+    <link rel="stylesheet" href="/public/css/chat.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="chat-app">
+        <button class="menu-chat-btn" id="menuChatBtn"><i class="fas fa-bars"></i></button>
+
+        <div class="chat-list" id="chatList">
+            <div class="chat-list-header"><i class="fas fa-comment"></i> Chats</div>
+            <div class="chat-search"><input type="text" id="searchChats" placeholder="Buscar chats..."></div>
+            <div class="chat-list-items" id="chatListItems">
+                <% chats.forEach(chat => { %>
+                    <% if (chat.tipo === 'grupal') { %>
+                        <div class="chat-list-item active" data-chat="grupal" data-id="<%= chat.id %>">
+                            <div class="chat-list-item-avatar"><i class="<%= chat.avatar %>"></i></div>
+                            <div class="chat-list-item-info">
+                                <h4><%= chat.nombre %></h4>
+                                <p class="chat-preview"><%= chat.ultimoMensaje %></p>
+                            </div>
+                            <% if (chat.noLeidos > 0) { %>
+                                <span class="badge-unread"><%= chat.noLeidos %></span>
+                            <% } %>
+                        </div>
+                    <% } else { %>
+                        <div class="chat-list-item" data-chat="privado-<%= chat.id %>" data-userid="<%= chat.id %>">
+                            <div class="chat-list-item-avatar"><%= chat.avatar %></div>
+                            <div class="chat-list-item-info">
+                                <h4><%= chat.nombre %></h4>
+                                <p class="chat-preview"><%= chat.ultimoMensaje %></p>
+                            </div>
+                            <% if (chat.noLeidos > 0) { %>
+                                <span class="badge-unread"><%= chat.noLeidos %></span>
+                            <% } %>
+                        </div>
+                    <% } %>
+                <% }) %>
+            </div>
+        </div>
+
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-header-avatar"><i class="fas fa-users"></i></div>
+                <div class="chat-header-info"><h2>Chat Grupal</h2><p>Comunidad</p></div>
+                <div class="chat-header-actions">
+                    <a href="/home" class="home-btn" title="Inicio"><i class="fas fa-home"></i></a>
+                </div>
+            </div>
+
+            <div class="messages-area" id="messages-area">
+                <% mensajes.forEach(msg => { %>
+                    <div class="message <%= msg.remitente_id == usuarioId ? 'own' : 'other' %>" data-message-id="<%= msg.id %>">
+                        <div class="message-bubble">
+                            <% if (msg.remitente_id != usuarioId) { %>
+                                <div class="sender-name"><%= msg.remitente_nombre %></div>
+                            <% } %>
+                            <div class="message-content">
+                                <% if (msg.tipo_mensaje === 'texto') { %>
+                                    <%= msg.contenido %>
+                                <% } else if (msg.tipo_mensaje === 'imagen') { %>
+                                    <img src="<%= msg.contenido %>" alt="Imagen" onclick="window.open(this.src)">
+                                <% } else if (msg.tipo_mensaje === 'video') { %>
+                                    <video controls src="<%= msg.contenido %>"></video>
+                                <% } else { %>
+                                    <a href="<%= msg.contenido %>" target="_blank"><i class="fas fa-file"></i> Ver archivo</a>
+                                <% } %>
+                            </div>
+                            <div class="message-time"><%= new Date(msg.fecha_envio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></div>
+                            <% if (msg.remitente_id == usuarioId || usuarioRol === 'admin') { %>
+                                <span class="delete-message" data-id="<%= msg.id %>"><i class="fas fa-trash"></i></span>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+
+            <div class="input-area">
+                <div class="file-upload"><label for="file-input"><i class="fas fa-paperclip"></i></label><input type="file" id="file-input" accept="image/*,video/*,application/*"></div>
+                <textarea id="message-input" placeholder="Escribe un mensaje..."></textarea>
+                <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // (El script se mantiene igual, sin cambios)
+        const socket = io();
+        const usuarioId = <%= usuarioId %>;
+        const nombreUsuario = "<%= nombreUsuario %>";
+        const usuarioRol = "<%= usuarioRol %>";
+        const messagesArea = document.getElementById('messages-area');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const fileInput = document.getElementById('file-input');
+        const chatList = document.getElementById('chatList');
+        const menuChatBtn = document.getElementById('menuChatBtn');
+        const searchInput = document.getElementById('searchChats');
+
+        // ---------- Función para manejar clic en eliminar ----------
+        async function handleDeleteClick(e) {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            const mensajeId = btn.dataset.id;
+            if (!confirm('¿Eliminar mensaje?')) return;
+
+            try {
+                const response = await fetch(`/mensaje/${mensajeId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    const mensajeDiv = btn.closest('.message');
+                    if (mensajeDiv) mensajeDiv.remove();
+                    socket.emit('delete-message', mensajeId);
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'No se pudo eliminar el mensaje');
+                }
+            } catch (error) {
+                console.error('Error al eliminar:', error);
+                alert('Error al eliminar');
+            }
+        }
+
+        // ---------- Asignar eventos a los botones de eliminar ----------
+        function attachDeleteHandlers() {
+            document.querySelectorAll('.delete-message').forEach(btn => {
+                btn.removeEventListener('click', handleDeleteClick);
+                btn.addEventListener('click', handleDeleteClick);
+            });
+        }
+
+        // ---------- Función para agregar un mensaje al DOM ----------
+        function appendMessage(msg) {
+            const div = document.createElement('div');
+            div.className = `message ${msg.remitente_id == usuarioId ? 'own' : 'other'}`;
+            div.dataset.messageId = msg.id;
+
+            let contenidoHtml = '';
+            if (msg.tipo_mensaje === 'texto') {
+                contenidoHtml = `<div class="message-content">${msg.contenido}</div>`;
+            } else if (msg.tipo_mensaje === 'imagen') {
+                contenidoHtml = `<div class="message-content"><img src="${msg.contenido}" alt="Imagen" onclick="window.open(this.src)"></div>`;
+            } else if (msg.tipo_mensaje === 'video') {
+                contenidoHtml = `<div class="message-content"><video controls src="${msg.contenido}"></video></div>`;
+            } else {
+                contenidoHtml = `<div class="message-content"><a href="${msg.contenido}" target="_blank"><i class="fas fa-file"></i> Ver archivo</a></div>`;
+            }
+
+            const senderHtml = (msg.remitente_id != usuarioId && msg.destinatario_id === null) ? `<div class="sender-name">${msg.remitente_nombre}</div>` : '';
+            const deleteBtn = (msg.remitente_id == usuarioId || usuarioRol === 'admin') ? `<span class="delete-message" data-id="${msg.id}"><i class="fas fa-trash"></i></span>` : '';
+
+            div.innerHTML = `
+                <div class="message-bubble">
+                    ${senderHtml}
+                    ${contenidoHtml}
+                    <div class="message-time">${new Date(msg.fecha_envio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    ${deleteBtn}
+                </div>
+            `;
+            messagesArea.appendChild(div);
+
+            const deleteSpan = div.querySelector('.delete-message');
+            if (deleteSpan) {
+                deleteSpan.addEventListener('click', handleDeleteClick);
+            }
+
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        // ---------- Actualizar la lista de chats en el menú ----------
+        function actualizarChatEnLista(msg) {
+            let chatItem;
+            if (msg.destinatario_id === null) {
+                // Mensaje grupal
+                chatItem = document.querySelector('.chat-list-item[data-chat="grupal"]');
+            } else {
+                // Mensaje privado: determinar el otro usuario
+                const otroId = msg.remitente_id == usuarioId ? msg.destinatario_id : msg.remitente_id;
+                chatItem = document.querySelector(`.chat-list-item[data-chat="privado-${otroId}"]`);
+            }
+            if (!chatItem) return;
+
+            // Actualizar vista previa
+            const p = chatItem.querySelector('.chat-preview');
+            if (p) {
+                let preview = '';
+                if (msg.tipo_mensaje === 'texto') {
+                    preview = msg.contenido.length > 30 ? msg.contenido.substring(0, 30) + '...' : msg.contenido;
+                } else {
+                    preview = '[' + msg.tipo_mensaje + ']';
+                }
+                p.textContent = preview;
+            }
+
+            // Mover el chat al principio (después del grupo si es privado)
+            const chatList = document.getElementById('chatListItems');
+            if (msg.destinatario_id === null) {
+                // Si es grupal, ya debería estar arriba, pero aseguramos que sea el primero
+                if (chatList.firstChild !== chatItem) {
+                    chatList.insertBefore(chatItem, chatList.firstChild);
+                }
+            } else {
+                // Privado: colocar justo después del grupo
+                const grupo = document.querySelector('.chat-list-item[data-chat="grupal"]');
+                if (grupo && grupo.nextSibling) {
+                    chatList.insertBefore(chatItem, grupo.nextSibling);
+                } else {
+                    chatList.insertBefore(chatItem, chatList.firstChild);
+                }
+            }
+        }
+
+        // ---------- Actualización de badges de no leídos ----------
+        async function actualizarBadges() {
+            try {
+                const response = await fetch('/api/no-leidos');
+                const noLeidosMap = await response.json();
+                
+                document.querySelectorAll('.chat-list-item').forEach(item => {
+                    const badge = item.querySelector('.badge-unread');
+                    let key;
+                    if (item.dataset.chat === 'grupal') {
+                        key = 'grupal';
+                    } else {
+                        const userId = item.dataset.userid;
+                        key = `privado-${userId}`;
+                    }
+                    const count = noLeidosMap[key] || 0;
+                    if (count > 0) {
+                        if (badge) {
+                            badge.textContent = count;
+                        } else {
+                            const newBadge = document.createElement('span');
+                            newBadge.className = 'badge-unread';
+                            newBadge.textContent = count;
+                            item.appendChild(newBadge);
+                        }
+                    } else {
+                        if (badge) badge.remove();
+                    }
+                });
+            } catch (error) {
+                console.error('Error actualizando badges:', error);
+            }
+        }
+
+        // ---------- Eventos de socket ----------
+        socket.on('update-unread', actualizarBadges);
+
+        socket.on('receive-message', (msg) => {
+            // Siempre actualizar la lista y los badges
+            actualizarChatEnLista(msg);
+            actualizarBadges();
+
+            // Si el mensaje es grupal, mostrarlo en el área
+            if (msg.destinatario_id === null) {
+                appendMessage(msg);
+                socket.emit('marcar-leido', {
+                    tipo: 'grupal',
+                    otroUsuarioId: 0,
+                    ultimoMensajeId: msg.id
+                });
+            }
+        });
+
+        socket.on('message-deleted', (mensajeId) => {
+            document.querySelector(`.message[data-message-id="${mensajeId}"]`)?.remove();
+        });
+
+        // ---------- Eventos de interfaz ----------
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.chat-list-item').forEach(item => {
+                const name = item.querySelector('h4').innerText.toLowerCase();
+                item.style.display = name.includes(term) ? 'flex' : 'none';
+            });
+        });
+
+        document.querySelectorAll('.chat-list-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const chatType = item.dataset.chat;
+                if (chatType === 'grupal') {
+                    window.location.href = '/chat/grupal';
+                } else {
+                    window.location.href = `/chat/privado/${item.dataset.userid}`;
+                }
+            });
+        });
+
+        menuChatBtn.addEventListener('click', () => chatList.classList.toggle('show'));
+        document.querySelectorAll('.chat-list-item').forEach(item => {
+            item.addEventListener('click', () => { if (window.innerWidth <= 768) chatList.classList.remove('show'); });
+        });
+
+        sendBtn.addEventListener('click', () => {
+            const texto = messageInput.value.trim();
+            if (texto) {
+                socket.emit('send-message', {
+                    remitente_id: usuarioId,
+                    remitente_nombre: nombreUsuario,
+                    destinatario_id: null,
+                    tipo_mensaje: 'texto',
+                    contenido: texto,
+                    fecha_envio: new Date().toISOString()
+                });
+                messageInput.value = '';
+            }
+        });
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('archivo', file);
+            try {
+                const response = await fetch('/chat/subir', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    socket.emit('send-message', {
+                        remitente_id: usuarioId,
+                        remitente_nombre: nombreUsuario,
+                        destinatario_id: null,
+                        tipo_mensaje: data.tipo,
+                        contenido: data.url,
+                        fecha_envio: new Date().toISOString()
+                    });
+                } else alert('Error al subir archivo');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al subir archivo');
+            } finally {
+                fileInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+
+        // ---------- Inicialización ----------
+        document.addEventListener('DOMContentLoaded', () => {
+            attachDeleteHandlers();
+            const ultimoMensaje = document.querySelector('.message:last-child');
+            if (ultimoMensaje) {
+                const ultimoMensajeId = ultimoMensaje.dataset.messageId;
+                if (ultimoMensajeId) {
+                    socket.emit('marcar-leido', {
+                        tipo: 'grupal',
+                        otroUsuarioId: 0,
+                        ultimoMensajeId: parseInt(ultimoMensajeId)
+                    });
+                }
+            }
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        });
+    </script>
+</body>
+</html>
