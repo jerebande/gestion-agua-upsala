@@ -17,20 +17,26 @@ router.post("/admin/rechazar-usuario/:id", (req, res) => {
     req.body.accion = 'rechazado';
     usuarioController.procesarInvitacion(req, res);
 });
-router.get("/home", (req, res) => usuarioController.home(req, res));
 
+// Ruta principal (home) - debe estar autenticado
 router.get("/home", (req, res) => {
-    const nombreUsuario = req.session.usuario ? req.session.usuario.nombre : null;
-    console.log("Nombre del usuario en sesión:", nombreUsuario); 
-    res.render("index", { nombreUsuario });
+    // Verificar si el usuario está en sesión
+    if (!req.session.usuario) {
+        return res.redirect("/login");
+    }
+    // Llamar al controlador que se encarga de obtener los clientes y renderizar
+    usuarioController.home(req, res);
 });
 
-
+// Ruta de registro (POST)
 router.post("/registro", (req, res) => usuarioController.guardarUsuario(req, res));
-router.get("/login",(req,res)=>{
-    res.render("login")
-})
 
+// Ruta de login (GET)
+router.get("/login", (req, res) => {
+    res.render("login");
+});
+
+// Ruta de logout
 router.get("/logout", (req, res) => {
     req.session.destroy((err) => {
         if (err) {
@@ -40,9 +46,12 @@ router.get("/logout", (req, res) => {
     });
 });
 
-router.get("/registro",(req,res)=>{
-    res.render("crearcuenta")
-})
+// Ruta de registro (GET)
+router.get("/registro", (req, res) => {
+    res.render("crearcuenta");
+});
+
+// Ruta de login (POST)
 router.post("/login", (req, res) => usuarioController.loginUsuario(req, res));
 
 module.exports = router;
