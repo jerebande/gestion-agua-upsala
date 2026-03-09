@@ -9,17 +9,24 @@
 <body>  
    
 
-    <main>  
-
-         
-        <form action="/clientes" method="POST">  
-            <h2>Agregar Cliente</h2>
-            <input type="text" name="nombre" placeholder="Nombre" required>  
-            <input type="text" name="direccion" placeholder="Dirección" required>  
-            <input type="text" name="telefono" placeholder="Teléfono" required>  
-            <button type="submit">Guardar Cliente</button>  
-        </form>  
-    </main>  
+   <main>  
+    <form action="/clientes" method="POST">  
+        <h2>Agregar Cliente</h2>
+        <input type="text" name="nombre" placeholder="Nombre" required>  
+        <input type="text" name="direccion" placeholder="Dirección" required>  
+        
+        <input 
+            type="tel" 
+            name="telefono" 
+            placeholder="Teléfono (solo números)" 
+            pattern="[0-9]+" 
+            title="Por favor, ingrese solo números"
+            required
+        >  
+        
+        <button type="submit">Guardar Cliente</button>  
+    </form>  
+</main>
 
   
 </body>  

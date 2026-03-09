@@ -14,14 +14,23 @@
             <div class="menu-icon-bar"></div>
             <div class="menu-icon-bar"></div>
         </div>
-        <nav class="nav-menu">
-            <a href="/home">Inicio</a>
-            <a href="#">Tutorial</a>
+        <nav class="nav-menu">                                               
+            <a href="/home">Inicio</a>                                                                                                                                                                                                                                                             
             <a href="/historial/cuentas">historial</a>
-            <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>
-                <a href="/admin/invitaciones" style="color: #ffcc00; font-weight: bold;">Invitaciones</a>
-            <% } %>
-        </nav>
+            <a href="/notas">notas</a>
+            <!-- Enlace de chat con clase chat-link -->
+            <a href="/chat/grupal" class="chat-link">
+                chat
+                <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
+                    <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
+                <% } %>
+            </a>
+
+            <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>            
+                <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
+                <a href="/admin/configuracion" class="admin-link">configuración</a>
+            <% } %>                                                                                            
+        </nav>                                                                                                                                                                      
         <div class="registroinicio">
             <% if (nombreUsuario) { %>
                 <span><%= nombreUsuario %></span>
@@ -55,23 +64,34 @@
                 <div class="clientes-container">
                     <% clientes.forEach(cliente => { %>
                         <div class="cliente-card">
-                            <p><strong>Nombre:</strong> <%= cliente.nombre %></p>
-                            <p><strong class="direccion">Dirección:</strong> <%= cliente.direccion %></p>
-                            <p><strong class="telefono">Teléfono:</strong> <%= cliente.telefono %></p>
+                            <p>
+                                <i class="fas fa-user"></i>  <%= cliente.nombre %>
+                            </p>
+                            
+                            <p class="direccion">
+                                <i class="fas fa-map-marker-alt"></i> 
+                                <a href="https://www.google.com/maps/search/?api=1&query=<%= encodeURIComponent(cliente.direccion) %>" 
+                                   target="_blank" 
+                                   title="Ver en Google Maps">
+                                    <%= cliente.direccion %>
+                                </a>
+                            </p>
+
+                            <p>
+                                <i class="fas fa-phone-alt" style="color: green;"></i> 
+                                <a href="tel:<%= cliente.telefono %>" style="text-decoration: none; color: inherit;">
+                                    <%= cliente.telefono %>
+                                </a>
+                            </p>                                                       
+    
                             <a href="/clientes/<%= cliente.id %>" class="ver-detalle">Ver detalles</a>
                             <button class="menu-cliente" onclick="mostrarMenu(this)">&#x22EE;</button>                                                    
                             <button class="eliminar-cliente" onclick="eliminarCliente(<%= cliente.id %>)" style="display:none;">Eliminar</button>
                             <p>Bidones adeudados: <%= cliente.bidones_adeudados %></p>
-
-                            <form action="/clientes/<%= cliente.id %>/bidones" method="POST">     
-                                <label for="bidonesAdeudados">Actualizar bidones:</label>                    
-                                <input type="number" name="bidonesAdeudados" min="0" required class="inputbidon">
-                                <button class="actualizarbidon" type="submit">Actualizar</button>
-                            </form>
                         </div>
                     <% }); %>
                 </div>
-
+                                             
                 <div class="pagination">
                     <% if (page > 1) { %>
                         <a href="/home?page=<%= page - 1 %>&filtro=<%= filtro %>" class="pagination-arrow"><</a>
@@ -100,38 +120,63 @@
         </div>
     <% } %>
 
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const menuIcon = document.querySelector('.menu-icon');
         const navMenu = document.querySelector('.nav-menu');
         const mainContainer = document.querySelector('.main-container');
-    
-        // Toggle the navigation menu and adjust the margin-top of the main container
+
         menuIcon.addEventListener('click', () => {
             navMenu.classList.toggle('show');
-            mainContainer.style.marginTop = navMenu.classList.contains('show')
-                ? 'calc(80px + 60px)' 
-                : '0px';
+            if (navMenu.classList.contains('show')) {
+                mainContainer.style.marginTop = '300px';
+            } else {
+                mainContainer.style.marginTop = '0';
+            }
         });
-    
+
         function mostrarMenu(button) {
             const eliminarButton = button.nextElementSibling;
             eliminarButton.style.display = eliminarButton.style.display === 'none' ? 'block' : 'none';
         }
-    
+
         function eliminarCliente(clienteId) {
-            if(confirm("¿Estás seguro de que deseas eliminar este cliente?")) {
-                fetch(`/clientes/${clienteId}`, {
-                    method: 'DELETE',
-                })
-                .then(response => {
-                    if (response.ok) {
-                        window.location.reload();
-                    } else {
-                        alert('Error al eliminar el cliente');
-                    }
-                });
+            if (confirm("¿Estás seguro de que deseas eliminar este cliente?")) {
+                fetch(`/clientes/${clienteId}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) window.location.reload();
+                        else alert('Error al eliminar el cliente');
+                    });
             }
         }
+
+        // ---------- Lógica para el badge del chat ----------
+        <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
+            const socket = io();
+            const usuarioId = <%= usuarioId %>;
+
+            async function actualizarBadgeHeader() {
+                try {
+                    const response = await fetch('/api/no-leidos');
+                    const noLeidosMap = await response.json();
+                    // Sumar todos los valores del objeto (grupal y privados)
+                    const total = Object.values(noLeidosMap).reduce((acc, val) => acc + val, 0);
+                    const badge = document.getElementById('chatBadge');
+                    if (total > 0) {
+                        badge.textContent = total;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error al obtener no leídos:', error);
+                }
+            }
+
+            socket.on('update-unread', actualizarBadgeHeader);
+            document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
+        <% } %>
     </script>
 </body>
 </html>

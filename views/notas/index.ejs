@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notas</title>
+    <link rel="stylesheet" href="/public/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ===== ESTILOS MODERNOS PARA NOTAS ===== */
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --primary-dark: #1e3a8a;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --danger-light: #fecaca;
+            --warning: #f59e0b;
+            --info: #0ea5e9;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-light: #94a3b8;
+            --border-color: #e2e8f0;
+            --border-light: #f1f5f9;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Estilo para el badge de chat */
+        .badge-unread {
+            background-color: #ef4444;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 20px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+
+        /* Encabezado de notas */
+        .notas-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto 30px;
+            padding: 0 20px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .notas-header .main-title {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .notas-header .btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-light);
+            color: white;
+            border-color: var(--primary-light);
+        }
+
+        /* ===== BUSCADOR Y FILTROS ===== */
+        .search-section {
+            max-width: 900px;
+            margin: 0 auto 40px;
+            padding: 0 20px;
+        }
+
+        .search-form {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+
+        .search-form:focus-within {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-light);
+        }
+
+        .search-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            padding: 12px 15px;
+            font-size: 1rem;
+            background: transparent;
+            color: var(--text-primary);
+            outline: none;
+            min-width: 200px;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-light);
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 24px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .search-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .clear-btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .clear-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--text-light);
+        }
+
+        /* Filtro de tipos de archivo */
+        .filter-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .filter-types label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .filter-types input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+        }
+
+        /* ===== PAGINADOR MODERNO ===== */
+        .pagination-modern {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin: 50px 0 30px;
+            padding: 0 20px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: 30px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .pagination-btn:hover:not(.disabled) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .pagination-info {
+            background: var(--primary);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Grid de notas */
+        .notas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .nota-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            animation: slideInUp 0.4s ease-out;
+        }
+        .nota-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .nota-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-light);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .nota-titulo {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 auto;
+            word-break: break-word;
+            line-height: 1.4;
+            text-align: center;
+            width: 100%;
+        }
+        .nota-autor {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            background: var(--bg-hover);
+            padding: 4px 10px;
+            border-radius: 30px;
+            margin: 0 auto;
+        }
+        .badge-own {
+            background: var(--primary-light);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 30px;
+            margin-left: 4px;
+        }
+
+        .nota-contenido {
+            flex: 1;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            word-break: break-word;
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+        .nota-contenido::-webkit-scrollbar {
+            width: 4px;
+        }
+        .nota-contenido::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .nota-archivos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 16px 0 12px;
+            justify-content: center;
+        }
+        .archivo-item {
+            flex: 0 0 auto;
+            max-width: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            background: var(--bg-main);
+            transition: var(--transition);
+        }
+        .archivo-item:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-sm);
+        }
+        .archivo-imagen {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .archivo-video {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+        }
+        .video-item {
+            max-width: 180px;
+        }
+        .documento-item {
+            max-width: 140px;
+            background: var(--bg-hover);
+            padding: 10px;
+            text-align: center;
+        }
+        .documento-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .documento-link i {
+            font-size: 2.5rem;
+        }
+        .pdf-icon { color: #f40f02; }
+        .word-icon { color: #2b5797; }
+        .excel-icon { color: #1e6f3c; }
+        .ppt-icon { color: #d24726; }
+        .document-icon { color: var(--text-secondary); }
+        .documento-nombre {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            word-break: break-word;
+        }
+
+        .nota-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-light);
+        }
+        .nota-fecha {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .nota-estado .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .nota-acciones {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 10px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+        }
+        .btn-icon:hover {
+            background: var(--bg-hover);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 70px 20px;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            border-radius: 24px;
+            box-shadow: var(--shadow-sm);
+            max-width: 500px;
+            margin: 40px auto;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--border-color);
+            margin-bottom: 20px;
+            display: block;
+        }
+        .empty-state p {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .empty-state span {
+            font-size: 1rem;
+            color: var(--text-light);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .modal-close:hover {
+            transform: scale(1.2);
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .notas-header {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .header-title-group {
+                justify-content: center;
+            }
+
+            .vista-selector {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+            }
+
+            .vista-selector .btn {
+                flex: 1;
+                text-align: center;
+            }
+
+            .notas-header .btn {
+                width: 100%;
+            }
+
+            .search-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .search-btn, .clear-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .filter-types {
+                justify-content: center;
+            }
+
+            .notas-grid {
+                grid-template-columns: 1fr;
+                padding: 0 12px;
+            }
+            .nota-card {
+                padding: 20px;
+            }
+            .nota-titulo {
+                font-size: 1.2rem;
+            }
+            .nota-archivos {
+                gap: 8px;
+            }
+            .archivo-item {
+                max-width: 100px;
+            }
+            .archivo-imagen, .archivo-video {
+                height: 80px;
+            }
+            .video-item {
+                max-width: 150px;
+            }
+            .documento-item {
+                max-width: 110px;
+            }
+
+            .pagination-modern {
+                gap: 8px;
+            }
+
+            .pagination-btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+
+            .pagination-info {
+                padding: 6px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nota-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .nota-autor {
+                white-space: normal;
+            }
+            .nota-footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .nota-estado {
+                align-self: flex-start;
+            }
+            .nota-acciones {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            .modal-close {
+                top: 10px;
+                right: 20px;
+                font-size: 30px;
+            }
+            .empty-state i {
+                font-size: 3rem;
+            }
+            .empty-state p {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="menu-icon">
+            <div class="menu-icon-bar"></div>
+            <div class="menu-icon-bar"></div>
+            <div class="menu-icon-bar"></div>
+        </div>
+        <nav class="nav-menu">
+            <a href="/home">Inicio</a>        
+            <a href="/historial/cuentas">historial</a>
+            <a href="/notas">notas</a>  
+            <!-- Enlace de chat con badge de notificaciones -->
+            <a href="/chat/grupal" class="chat-link">
+                chat
+                <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
+                    <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
+                <% } %>
+            </a>                                  
+            <% if (usuarioRol === 'admin') { %>
+                <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
+                <a href="/admin/configuracion" class="admin-link">configuración</a>
+            <% } %>
+        </nav>
+        <div class="registroinicio">
+            <% if (nombreUsuario) { %>
+                <span><%= nombreUsuario %></span>
+                <a href="/logout">Cerrar sesión</a>
+            <% } %>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="notas-header">
+            <div class="header-title-group">
+                <h1 class="main-title">
+                    <%= vista === 'misnotas' ? 'Mis Notas' : 'Todas las Notas' %>
+                </h1>
+                <div class="vista-selector" style="display: flex; gap: 8px;">
+                    <a href="/notas" class="btn <%= vista === 'feed' ? 'btn-primary' : 'btn-secondary' %>">
+                        <i class="fas fa-stream"></i> General
+                    </a>
+                    <a href="/notas/mis-notas" class="btn <%= vista === 'misnotas' ? 'btn-primary' : 'btn-secondary' %>">
+                        <i class="fas fa-user"></i> Mis notas
+                    </a>
+                </div>
+            </div>
+            <a href="/notas/crear" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nueva Nota
+            </a>
+        </div>
+
+        <!-- Buscador con filtro de tipos de archivo -->
+        <div class="search-section">
+            <form action="<%= vista === 'misnotas' ? '/notas/mis-notas' : '/notas' %>" method="GET" class="search-form">
+                <div class="search-row">
+                    <input type="text" name="q" value="<%= buscar %>" placeholder="Buscar por título, contenido o usuario..." class="search-input">
+                    <div class="search-actions">
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <% if (buscar || (tiposSeleccionados && tiposSeleccionados.length)) { %>
+                            <a href="<%= vista === 'misnotas' ? '/notas/mis-notas' : '/notas' %>" class="clear-btn">
+                                <i class="fas fa-times"></i> Limpiar 
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Filtro por tipo de archivo: AHORA USAMOS name="tipo" (sin corchetes) para que Express lo interprete como array -->
+                <div class="filter-types">
+                    <label>
+                        <input type="checkbox" name="tipo" value="image" <%= tiposSeleccionados && tiposSeleccionados.includes('image') ? 'checked' : '' %>> Imágenes
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="video" <%= tiposSeleccionados && tiposSeleccionados.includes('video') ? 'checked' : '' %>> Videos
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="pdf" <%= tiposSeleccionados && tiposSeleccionados.includes('pdf') ? 'checked' : '' %>> PDF
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="word" <%= tiposSeleccionados && tiposSeleccionados.includes('word') ? 'checked' : '' %>> Word
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="excel" <%= tiposSeleccionados && tiposSeleccionados.includes('excel') ? 'checked' : '' %>> Excel
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="powerpoint" <%= tiposSeleccionados && tiposSeleccionados.includes('powerpoint') ? 'checked' : '' %>> PowerPoint
+                    </label>
+                </div>
+            </form>
+        </div>
+
+        <% if (notas && notas.length) { %>
+            <div class="notas-grid">
+                <% notas.forEach(nota => { %>
+                    <div class="nota-card">
+                        <div class="nota-header">
+                            <h3 class="nota-titulo"><%= nota.titulo %></h3>
+                            <span class="nota-autor">
+                                <i class="fas fa-user"></i> <%= nota.autor_nombre %>
+                                <% if (nota.autor_id === usuarioId) { %>
+                                    <span class="badge-own">(tú)</span>
+                                <% } %>
+                            </span>
+                        </div>
+                        <div class="nota-contenido">
+                            <% 
+                                let contenidoConBr = nota.contenido.replace(/\n/g, '<br>'); 
+                            %>
+                            <%- contenidoConBr %>
+                        </div>
+
+                        <% if (nota.archivos && nota.archivos.length) { %>
+                            <div class="nota-archivos">
+                                <% nota.archivos.forEach(arch => { %>
+                                    <% if (arch.tipo === 'image') { %>
+                                        <div class="archivo-item">
+                                            <img src="<%= arch.ruta %>" alt="<%= arch.nombre_original %>" class="archivo-imagen" onclick="openModal('<%= arch.ruta %>')">
+                                        </div>
+                                    <% } else if (arch.tipo === 'video') { %>
+                                        <div class="archivo-item video-item">
+                                            <video controls preload="metadata" class="archivo-video">
+                                                <source src="<%= arch.ruta %>">
+                                                Tu navegador no soporta video.
+                                            </video>
+                                        </div>
+                                    <% } else { %>
+                                        <div class="archivo-item documento-item">
+                                            <a href="<%= arch.ruta %>" target="_blank" class="documento-link" title="<%= arch.nombre_original %>">
+                                                <% if (arch.tipo === 'pdf') { %>
+                                                    <i class="fas fa-file-pdf pdf-icon"></i>
+                                                <% } else if (arch.tipo === 'word') { %>
+                                                    <i class="fas fa-file-word word-icon"></i>
+                                                <% } else if (arch.tipo === 'excel') { %>
+                                                    <i class="fas fa-file-excel excel-icon"></i>
+                                                <% } else if (arch.tipo === 'powerpoint') { %>
+                                                    <i class="fas fa-file-powerpoint ppt-icon"></i>
+                                                <% } else { %>
+                                                    <i class="fas fa-file document-icon"></i>
+                                                <% } %>
+                                                <span class="documento-nombre"><%= arch.nombre_original.substring(0, 15) %><%= arch.nombre_original.length > 15 ? '...' : '' %></span>
+                                            </a>
+                                        </div>
+                                    <% } %>
+                                <% }); %>
+                            </div>
+                        <% } %>
+
+                        <div class="nota-footer">
+                            <div class="nota-fecha">
+                                <i class="far fa-calendar-alt"></i>
+                                <%= new Date(nota.fecha_actualizacion || nota.fecha_creacion).toLocaleDateString('es-AR') %>
+                            </div>
+                            <div class="nota-estado">
+                                <% if (nota.compartida) { %>
+                                    <span class="badge badge-success"><i class="fas fa-globe"></i> Público</span>
+                                <% } else { %>
+                                    <span class="badge badge-pending"><i class="fas fa-lock"></i> Privada</span>
+                                <% } %>                                                    
+                            </div>
+
+                            <% if (nota.autor_id === usuarioId || (usuarioRol === 'admin' && nota.compartida)) { %>
+                                <div class="nota-acciones">
+                                    <a href="/notas/<%= nota.id %>/editar" class="btn-icon" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="/notas/<%= nota.id %>/eliminar" method="POST" style="display: inline;" onsubmit="return confirm('¿Eliminar esta nota?')">
+                                        <button type="submit" class="btn-icon" title="Eliminar">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <i class="fas fa-sticky-note"></i>
+                <p>No hay notas aún</p>
+                <span>Crea una nueva nota para comenzar</span>
+            </div>
+        <% } %>
+
+        <!-- Paginador con parámetros de filtro (AHORA USAMOS &tipo= EN VEZ DE &tipo[]=) -->
+        <% if (totalPaginas > 1) { 
+            let tipoParams = '';
+            if (tiposSeleccionados && tiposSeleccionados.length) {
+                tiposSeleccionados.forEach(t => {
+                    tipoParams += '&tipo=' + encodeURIComponent(t);
+                });
+            }
+        %>
+            <div class="pagination-modern">
+                <% if (paginaActual > 1) { %>
+                    <a href="?page=<%= paginaActual - 1 %>&q=<%= buscar %><%= tipoParams %>" class="pagination-btn">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </a>
+                <% } else { %>
+                    <span class="pagination-btn disabled">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </span>
+                <% } %>
+
+                <span class="pagination-info"> <%= paginaActual %> de <%= totalPaginas %></span>
+
+                <% if (paginaActual < totalPaginas) { %>
+                    <a href="?page=<%= paginaActual + 1 %>&q=<%= buscar %><%= tipoParams %>" class="pagination-btn">
+                        Siguiente <i class="fas fa-chevron-right"></i>
+                    </a>
+                <% } else { %>
+                    <span class="pagination-btn disabled">
+                        Siguiente <i class="fas fa-chevron-right"></i>
+                    </span>
+                <% } %>
+            </div>
+        <% } %>
+    </main>
+
+    <div id="imageModal" class="modal" style="display: none;">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <!-- Scripts existentes -->
+    <script>
+        const menuIcon = document.querySelector('.menu-icon');
+        const navMenu = document.querySelector('.nav-menu');
+        const mainContainer = document.querySelector('.main-container');
+                                                                                   
+        menuIcon.addEventListener('click', () => {
+            navMenu.classList.toggle('show');
+            if (navMenu.classList.contains('show')) {
+                mainContainer.style.marginTop = '300px';
+            } else {
+                mainContainer.style.marginTop = '0';
+            }
+        });
+
+        function openModal(src) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+
+    <!-- Script para el badge de chat (Socket.IO) -->
+    <script src="/socket.io/socket.io.js"></script>
+    <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
+    <script>
+        (function() {
+            const socket = io();
+            const usuarioId = <%= usuarioId %>;
+
+            async function actualizarBadgeHeader() {
+                try {
+                    const response = await fetch('/api/no-leidos');
+                    const noLeidosMap = await response.json();
+                    const total = Object.values(noLeidosMap).reduce((acc, val) => acc + val, 0);
+                    const badge = document.getElementById('chatBadge');
+                    if (total > 0) {
+                        badge.textContent = total;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error al obtener no leídos:', error);
+                }
+            }
+
+            socket.on('update-unread', actualizarBadgeHeader);
+            document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
+        })();
+    </script>
+    <% } %>
+</body>
+</html>

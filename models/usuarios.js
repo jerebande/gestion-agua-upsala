@@ -1,6 +1,18 @@
 const conx = require("../database/db");
 
 class UsuarioModel {
+    // Obtener usuarios rechazados
+    obtenerUsuariosRechazados() {
+        return new Promise((resolve, reject) => {
+            const sql = "SELECT id, nombre, gmail, estado_permiso FROM usuarios WHERE rol = 'usuario' AND estado_permiso = 'rechazado'";
+            conx.query(sql, (err, results) => {
+                if (err) return reject(err);
+                resolve(results);
+            });
+        });
+    }
+
+    // Actualizar permiso de usuario
     actualizarPermiso(usuarioId, estado) {
         return new Promise((resolve, reject) => {
             const sql = "UPDATE usuarios SET estado_permiso = ? WHERE id = ?";
@@ -10,6 +22,8 @@ class UsuarioModel {
             });
         });
     }
+
+    // Obtener usuarios pendientes de aprobación
     obtenerUsuariosPendientes() {
         return new Promise((resolve, reject) => {
             const sql = "SELECT id, nombre, gmail, estado_permiso FROM usuarios WHERE rol = 'usuario' AND estado_permiso = 'pendiente'";
@@ -19,6 +33,8 @@ class UsuarioModel {
             });
         });
     }
+
+    // Guardar un nuevo cliente (tabla clientes)
     guardarCliente(cliente) {
         return new Promise((resolve, reject) => {
             const sql = "INSERT INTO clientes (nombre, direccion, telefono, estado_pago) VALUES (?, ?, ?, ?)";
@@ -29,6 +45,7 @@ class UsuarioModel {
         });
     }
 
+    // Obtener todos los clientes
     obtenerClientes() {
         return new Promise((resolve, reject) => {
             const sql = "SELECT * FROM clientes";
@@ -39,7 +56,8 @@ class UsuarioModel {
         });
     }
 
-  validarUsuario(gmail, contraseña) {
+    // Validar usuario por email y contraseña
+    validarUsuario(gmail, contraseña) {
         return new Promise((resolve, reject) => {
             const sql = "SELECT * FROM usuarios WHERE gmail = ? AND contraseña = ?";
             conx.query(sql, [gmail, contraseña], (err, results) => {
@@ -49,6 +67,7 @@ class UsuarioModel {
         });
     }
 
+    // Obtener un usuario por su ID
     obtenerUsuario(id) {
         return new Promise((resolve, reject) => {
             const sql = "SELECT * FROM usuarios WHERE id = ?";
@@ -59,9 +78,10 @@ class UsuarioModel {
         });
     }
 
+    // Guardar un nuevo usuario (con rol 'usuario' y estado 'pendiente')
     guardar(datos) {
         return new Promise((resolve, reject) => {
-            const sql = "INSERT INTO usuarios (nombre, gmail, contraseña) VALUES (?, ?, ?)";
+            const sql = "INSERT INTO usuarios (nombre, gmail, contraseña, rol, estado_permiso) VALUES (?, ?, ?, 'usuario', 'pendiente')";
             conx.query(sql, [datos.nombre, datos.gmail, datos.contraseña], (err, results) => {
                 if (err) return reject(err);
                 resolve(results);
@@ -69,12 +89,24 @@ class UsuarioModel {
         });
     }
 
+    // Verificar si ya existe un usuario con el mismo email
     validarUsuarioPorEmail(gmail) {
         return new Promise((resolve, reject) => {
             const sql = "SELECT * FROM usuarios WHERE gmail = ?";
             conx.query(sql, [gmail], (err, results) => {
                 if (err) return reject(err);
                 resolve(results.length > 0);
+            });
+        });
+    }
+
+    // Obtener todos los usuarios (para el chat y otras funciones)
+    obtenerUsuarios() {
+        return new Promise((resolve, reject) => {
+            const sql = "SELECT id, nombre, gmail FROM usuarios WHERE rol IN ('usuario', 'admin') ORDER BY nombre";
+            conx.query(sql, (err, results) => {
+                if (err) return reject(err);
+                resolve(results);
             });
         });
     }
