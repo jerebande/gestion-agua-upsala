@@ -1,9 +1,9 @@
 :root {
     --bg-primary: #f0f2f5;
     --bg-secondary: #ffffff;
-    --bg-message-own: #e3f2fd;      /* Azul claro moderno */
+    --bg-message-own: #e3f2fd;
     --bg-message-other: #ffffff;
-    --accent-color: #0084ff;         /* Azul brillante */
+    --accent-color: #0084ff;
     --accent-hover: #0073e6;
     --text-primary: #1c1e21;
     --text-secondary: #65676b;
@@ -39,6 +39,7 @@ body {
     width: 100vw;
     background: var(--bg-secondary);
     box-sizing: border-box;
+    position: relative; /* Para posicionar elementos absolutos dentro */
 }
 
 /* Lista de chats */
@@ -465,7 +466,7 @@ body {
     padding: 0;
     cursor: pointer;
     font-size: 1.3rem;
-    position: fixed;
+    position: absolute; /* Cambiado de fixed a absolute */
     top: 12px;
     left: 12px;
     z-index: 30;
@@ -486,13 +487,13 @@ body {
 @media (max-width: 768px) {
     .menu-chat-btn {
         display: flex;
-        top: 12px;                /* Sin desplazamiento adicional */
+        /* top y left ya están definidos, no se modifican */
     }
 
     .chat-list {
         position: absolute;
         left: 0;
-        top: 0;                   /* Comienza desde el borde superior */
+        top: 0;                /* Empieza desde el borde superior del contenedor */
         bottom: 0;
         width: 85%;
         max-width: 320px;
@@ -501,7 +502,7 @@ body {
         transition: transform 0.3s ease;
         box-shadow: var(--shadow-md);
         background: var(--bg-secondary);
-        height: 100%;              /* Ocupa toda la altura */
+        height: 100%;           /* Ocupa toda la altura del contenedor */
     }
 
     .chat-list.show {
@@ -513,7 +514,7 @@ body {
     }
 
     .chat-header {
-        padding-left: 70px;
+        padding-left: 70px;     /* Espacio para el botón de menú */
     }
 
     .message {
@@ -526,8 +527,9 @@ body {
     }
 
     .chat-app {
-        padding-top: 0;            /* Eliminado el espacio superior */
-        padding-bottom: env(safe-area-inset-bottom, 0); /* Solo para la barra inferior */
+        /* Espacio superior para la barra del navegador */
+        padding-top: env(safe-area-inset-top, 50px);
+        padding-bottom: env(safe-area-inset-bottom, 0);
     }
 }
 
