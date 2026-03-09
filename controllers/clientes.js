@@ -232,6 +232,35 @@ async actualizarCliente(req, res) {
         return res.status(500).send("Error del servidor al actualizar cliente.");
     }
 }
+
+// ----- NUEVO MÉTODO PARA ACTUALIZAR DATOS BÁSICOS (nombre, dirección, teléfono) -----
+async actualizarDatosBasicos(req, res) {
+    if (!req.session.usuario) {
+        return res.status(401).json({ error: "No autorizado" });
+    }
+    const { id } = req.params;
+    const { nombre, direccion, telefono } = req.body;
+    const usuarioId = req.session.usuario.id;
+    const rol = req.session.usuario.rol;
+
+    try {
+        let cliente;
+        if (rol === 'admin') {
+            cliente = await clienteModel.obtenerClientePorId(id);
+        } else {
+            cliente = await clienteModel.obtenerClientePorIdYUsuario(id, usuarioId);
+        }
+        if (!cliente) {
+            return res.status(404).json({ error: "Cliente no encontrado o no tiene permiso" });
+        }
+
+        await clienteModel.actualizarDatosBasicos(id, { nombre, direccion, telefono });
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error al actualizar datos básicos del cliente:", error);
+        res.status(500).json({ error: "Error del servidor" });
+    }
+}
     
 }
 

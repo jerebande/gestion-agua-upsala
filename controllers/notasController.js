@@ -55,6 +55,34 @@ function getFileType(mimetype) {
 }
 
 class NotasController {
+    async actualizarCliente(req, res) {
+    if (!req.session.usuario) {
+        return res.status(401).json({ error: "No autorizado" });
+    }
+    const { id } = req.params;
+    const { nombre, direccion, telefono } = req.body;
+    const usuarioId = req.session.usuario.id;
+    const rol = req.session.usuario.rol;
+
+    try {
+        // Verificar que el cliente exista y pertenezca al usuario si no es admin
+        let cliente;
+        if (rol === 'admin') {
+            cliente = await clienteModel.obtenerClientePorId(id); // necesitamos este método
+        } else {
+            cliente = await clienteModel.obtenerClientePorIdYUsuario(id, usuarioId);
+        }
+        if (!cliente) {
+            return res.status(404).json({ error: "Cliente no encontrado o no tiene permiso" });
+        }
+
+        await clienteModel.actualizarCliente(id, { nombre, direccion, telefono });
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error al actualizar cliente:", error);
+        res.status(500).json({ error: "Error del servidor" });
+    }
+}
     async listarMisNotas(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         try {

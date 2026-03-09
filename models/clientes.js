@@ -289,6 +289,24 @@ class ClienteModel {
         
         return datos;
     }
+
+    // ----- NUEVOS MÉTODOS PARA EDICIÓN DE DATOS BÁSICOS -----
+    async obtenerClientePorIdYUsuario(id, usuarioId) {
+        const sql = `
+            SELECT c.* 
+            FROM clientes c
+            INNER JOIN usuario_cliente uc ON c.id = uc.cliente_id
+            WHERE c.id = ? AND uc.usuario_id = ?
+        `;
+        const [rows] = await pool.query(sql, [id, usuarioId]);
+        return rows[0];
+    }
+
+    async actualizarDatosBasicos(id, { nombre, direccion, telefono }) {
+        const sql = "UPDATE clientes SET nombre = ?, direccion = ?, telefono = ? WHERE id = ?";
+        const [result] = await pool.query(sql, [nombre, direccion, telefono, id]);
+        return result;
+    }
 }
 
 module.exports = ClienteModel;
