@@ -21,7 +21,7 @@ const pool = mysql.createPool({
         const connection = await pool.getConnection();
         console.log("¡Conectado exitosamente a la base de datos!");
         connection.release(); // Liberar la conexión de prueba
-    } catch (error) {
+    } catch (error) {                                                            
         console.log("Error detallado de conexión:", error);
         // No detenemos la aplicación, pero el error quedará registrado
     }
