@@ -28,14 +28,14 @@ async listarCuentasPorFecha(req, res) {
     try {
         const nombreUsuario = req.session.usuario.nombre;
         const usuarioRol = req.session.usuario.rol;
-        const usuarioId = req.session.usuario.id; // <-- AGREGADO
+        const usuarioId = req.session.usuario.id;
         const cuentas = await clienteModel.obtenerCuentasPorFecha(fecha);
 
-        // Extraer totales del primer resultado (si existe)
-        const totalGeneral = cuentas.length > 0 ? cuentas[0].total_general : 0;
-        const totalPagados = cuentas.length > 0 ? cuentas[0].total_pagados : 0;
-        const totalFiados = cuentas.length > 0 ? cuentas[0].total_fiados : 0;
-        const totalTransferencias = cuentas.length > 0 ? cuentas[0].total_transferencias : 0;
+        // Convertir a número los totales (vienen como string de la BD)  // <--- CORREGIDO
+        const totalGeneral = cuentas.length > 0 ? parseFloat(cuentas[0].total_general) || 0 : 0;
+        const totalPagados = cuentas.length > 0 ? parseFloat(cuentas[0].total_pagados) || 0 : 0;
+        const totalFiados = cuentas.length > 0 ? parseFloat(cuentas[0].total_fiados) || 0 : 0;
+        const totalTransferencias = cuentas.length > 0 ? parseFloat(cuentas[0].total_transferencias) || 0 : 0;
 
         // Obtener datos por períodos
         const periodo7dias = await clienteModel.obtenerCuentasPorPeriodo('7dias');
@@ -48,7 +48,7 @@ async listarCuentasPorFecha(req, res) {
             fecha, 
             nombreUsuario, 
             usuarioRol,
-            usuarioId, // <-- AGREGADO
+            usuarioId,
             totalGeneral, 
             totalPagados, 
             totalFiados, 
