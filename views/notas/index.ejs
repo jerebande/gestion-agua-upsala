@@ -745,6 +745,30 @@
                     </div>
                 </div>
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+                <!-- Filtro por tipo de archivo: AHORA USAMOS name="tipo" (sin corchetes) para que Express lo interprete como array -->
+                <div class="filter-types">
+                    <label>
+                        <input type="checkbox" name="tipo" value="image" <%= tiposSeleccionados && tiposSeleccionados.includes('image') ? 'checked' : '' %>> Imágenes
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="video" <%= tiposSeleccionados && tiposSeleccionados.includes('video') ? 'checked' : '' %>> Videos
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="pdf" <%= tiposSeleccionados && tiposSeleccionados.includes('pdf') ? 'checked' : '' %>> PDF
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="word" <%= tiposSeleccionados && tiposSeleccionados.includes('word') ? 'checked' : '' %>> Word
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="excel" <%= tiposSeleccionados && tiposSeleccionados.includes('excel') ? 'checked' : '' %>> Excel
+                    </label>
+                    <label>
+                        <input type="checkbox" name="tipo" value="powerpoint" <%= tiposSeleccionados && tiposSeleccionados.includes('powerpoint') ? 'checked' : '' %>> PowerPoint
+=======
+>>>>>>> bdc30407a809b1cd7ffa1d561bcb048a315f2cac
                 <!-- Filtro por tipo de archivo -->
                 <div class="filter-types">
                     <label>
@@ -764,6 +788,10 @@
                     </label>
                     <label>
                         <input type="checkbox" name="tipo[]" value="powerpoint" <%= tiposSeleccionados && tiposSeleccionados.includes('powerpoint') ? 'checked' : '' %>> PowerPoint
+<<<<<<< HEAD
+=======
+>>>>>>> 76bbe278e528a5193ca0275101edddcda1ce7e89
+>>>>>>> bdc30407a809b1cd7ffa1d561bcb048a315f2cac
                     </label>
                 </div>
             </form>
@@ -862,12 +890,28 @@
             </div>
         <% } %>
 
+<<<<<<< HEAD
         <!-- Paginador con parámetros de filtro -->
+=======
+<<<<<<< HEAD
+        <!-- Paginador con parámetros de filtro (AHORA USAMOS &tipo= EN VEZ DE &tipo[]=) -->
+=======
+        <!-- Paginador con parámetros de filtro -->
+>>>>>>> 76bbe278e528a5193ca0275101edddcda1ce7e89
+>>>>>>> bdc30407a809b1cd7ffa1d561bcb048a315f2cac
         <% if (totalPaginas > 1) { 
             let tipoParams = '';
             if (tiposSeleccionados && tiposSeleccionados.length) {
                 tiposSeleccionados.forEach(t => {
+<<<<<<< HEAD
                     tipoParams += '&tipo[]=' + encodeURIComponent(t);
+=======
+<<<<<<< HEAD
+                    tipoParams += '&tipo=' + encodeURIComponent(t);
+=======
+                    tipoParams += '&tipo[]=' + encodeURIComponent(t);
+>>>>>>> 76bbe278e528a5193ca0275101edddcda1ce7e89
+>>>>>>> bdc30407a809b1cd7ffa1d561bcb048a315f2cac
                 });
             }
         %>
