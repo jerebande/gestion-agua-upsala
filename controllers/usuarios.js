@@ -5,7 +5,6 @@ const clienteModel = new ClienteModel();
 
 class UsuarioController {
     async mostrarInvitaciones(req, res) {
-        // Este método parece no usarse en las rutas, pero lo dejamos por si acaso
         try {
             const usuariosPendientes = await usuarioModel.obtenerUsuariosPendientes();
             const usuariosRechazados = await usuarioModel.obtenerUsuariosRechazados();
@@ -31,16 +30,9 @@ class UsuarioController {
         const clientesPorPagina = 5;
 
         try {
-            let todosLosClientes;
-            if (rol === 'admin') {
-                todosLosClientes = filtro 
-                    ? await clienteModel.obtenerTodosLosClientesFiltrados(filtro)
-                    : await clienteModel.obtenerTodosLosClientesGlobal();
-            } else {
-                todosLosClientes = filtro 
-                    ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
-                    : await clienteModel.obtenerClientesPorUsuario(usuarioId);
-            }
+            const todosLosClientes = filtro 
+                ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
+                : await clienteModel.obtenerClientesPorUsuario(usuarioId);
 
             const clientes = todosLosClientes.slice((page - 1) * clientesPorPagina, page * clientesPorPagina);
             res.render("index", { 
@@ -59,11 +51,7 @@ class UsuarioController {
     }
 
     async verInvitaciones(req, res) {
-        // Verificar autenticación
-        if (!req.session.usuario) {
-            return res.redirect("/login");
-        }
-        // Opcional: verificar que sea admin
+        if (!req.session.usuario) return res.redirect("/login");
         if (req.session.usuario.rol !== 'admin') {
             return res.status(403).send("Acceso denegado");
         }
@@ -176,7 +164,6 @@ class UsuarioController {
         }  
     }
 
-    // ----- NUEVO MÉTODO PARA ACTUALIZAR CLIENTE -----
     async actualizarCliente(req, res) {
         if (!req.session.usuario) {
             return res.status(401).json({ error: "No autorizado" });
@@ -184,21 +171,14 @@ class UsuarioController {
         const { id } = req.params;
         const { nombre, direccion, telefono } = req.body;
         const usuarioId = req.session.usuario.id;
-        const rol = req.session.usuario.rol;
 
         try {
-            // Verificar que el cliente exista y pertenezca al usuario si no es admin
-            let cliente;
-            if (rol === 'admin') {
-                cliente = await clienteModel.obtenerClientePorId(id);
-            } else {
-                cliente = await clienteModel.obtenerClientePorIdYUsuario(id, usuarioId);
-            }
+            const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
             if (!cliente) {
                 return res.status(404).json({ error: "Cliente no encontrado o no tiene permiso" });
             }
 
-            await clienteModel.actualizarCliente(id, { nombre, direccion, telefono });
+            await clienteModel.actualizarDatosBasicos(id, { nombre, direccion, telefono });
             res.json({ success: true });
         } catch (error) {
             console.error("Error al actualizar cliente:", error);
