@@ -698,10 +698,11 @@
                 <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
                     <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
                 <% } %>
-            </a>                                  
+            </a>
+            <a href="/configuracion" class="admin-link">configuración</a>                                  
             <% if (usuarioRol === 'admin') { %>
                 <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
-                <a href="/admin/configuracion" class="admin-link">configuración</a>
+                
             <% } %>
         </nav>
         <div class="registroinicio">

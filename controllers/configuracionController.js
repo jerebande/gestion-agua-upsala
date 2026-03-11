@@ -1,23 +1,25 @@
-const ConfiguracionModel = require("../models/configuracion");
-const configuracionModel = new ConfiguracionModel();
+// controllers/configuracionController.js
+const UsuarioModel = require("../models/usuarios");
+const usuarioModel = new UsuarioModel();
 
 class ConfiguracionController {
+    // Muestra el formulario con el precio del usuario actual
     async mostrarFormulario(req, res) {
-        if (!req.session.usuario || req.session.usuario.rol !== 'admin') {
+        if (!req.session.usuario) {
             return res.redirect("/login");
         }
         try {
-            const precio = await configuracionModel.obtenerPrecioBidon();
-            
+            const usuarioId = req.session.usuario.id;
+            const precio = await usuarioModel.obtenerPrecioUsuario(usuarioId);
+
             const nombreUsuario = req.session.usuario.nombre;
             const usuarioRol = req.session.usuario.rol;
-            const usuarioId = req.session.usuario.id;   // <-- AGREGADO
 
             res.render("configuracion", { 
                 precio, 
                 nombreUsuario,
                 usuarioRol,
-                usuarioId      // <-- AGREGADO
+                usuarioId
             });
         } catch (error) {
             console.error("Error al obtener precio:", error);
@@ -25,8 +27,9 @@ class ConfiguracionController {
         }
     }
 
+    // Actualiza el precio del usuario actual
     async actualizarPrecio(req, res) {
-        if (!req.session.usuario || req.session.usuario.rol !== 'admin') {
+        if (!req.session.usuario) {
             return res.redirect("/login");
         }
         const { precio_bidon } = req.body;
@@ -34,7 +37,8 @@ class ConfiguracionController {
             return res.status(400).send("El precio es obligatorio y debe ser un número.");
         }
         try {
-            await configuracionModel.actualizarPrecioBidon(precio_bidon);
+            const usuarioId = req.session.usuario.id;
+            await usuarioModel.actualizarPrecioUsuario(usuarioId, precio_bidon);
             res.redirect("/home");
         } catch (error) {
             console.error("Error al actualizar precio:", error);

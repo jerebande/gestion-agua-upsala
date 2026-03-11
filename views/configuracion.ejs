@@ -96,9 +96,10 @@
                     <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
                 <% } %>
             </a>
+            <!-- El enlace a configuración ahora está disponible para todos los usuarios autenticados -->
+            <a href="/configuracion" class="active">configuración</a>
             <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>
                 <a href="/admin/invitaciones">Invitaciones</a>
-                <a href="/admin/configuracion" class="active">configuración</a>
             <% } %>                                                             
         </nav>                                                                         
         <div class="registroinicio">
@@ -120,7 +121,8 @@
                 Precio actual: $<%= precio %>
             </div>
 
-            <form action="/admin/configuracion" method="POST">
+            <!-- Cambiamos la acción a /configuracion (sin /admin) -->
+            <form action="/configuracion" method="POST">
                 <label for="precio_bidon">Nuevo precio:</label>
                 <input type="number" id="precio_bidon" name="precio_bidon" step="0.01" min="0" placeholder="Ej: 5000" required>
                                                                                                                                         

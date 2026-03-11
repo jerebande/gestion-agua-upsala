@@ -20,19 +20,12 @@ class UsuarioModel {
         return rows;
     }
 
-    // Guardar un nuevo cliente (tabla clientes) - ¿esto está en el lugar correcto? Mejor moverlo a clienteModel, pero lo dejamos por si acaso
-    async guardarCliente(cliente) {
-        const sql = "INSERT INTO clientes (nombre, direccion, telefono, estado_pago) VALUES (?, ?, ?, ?)";
-        const [result] = await pool.query(sql, [cliente.nombre, cliente.direccion, cliente.telefono, cliente.estado_pago]);
+    // Guardar un nuevo usuario con precio por defecto
+    async guardar(datos, precioDefecto = 0) {
+        const sql = "INSERT INTO usuarios (nombre, gmail, contraseña, rol, estado_permiso, precio_bidon) VALUES (?, ?, ?, 'usuario', 'pendiente', ?)";
+        const [result] = await pool.query(sql, [datos.nombre, datos.gmail, datos.contraseña, precioDefecto]);
         return result;
     }
-
-    // Obtener todos los clientes - debería eliminarse porque ya no se usa
-    // async obtenerClientes() {
-    //     const sql = "SELECT * FROM clientes";
-    //     const [rows] = await pool.query(sql);
-    //     return rows;
-    // }
 
     async validarUsuario(gmail, contraseña) {
         const sql = "SELECT * FROM usuarios WHERE gmail = ? AND contraseña = ?";
@@ -44,12 +37,6 @@ class UsuarioModel {
         const sql = "SELECT * FROM usuarios WHERE id = ?";
         const [rows] = await pool.query(sql, [id]);
         return rows.length > 0 ? rows[0] : false;
-    }
-
-    async guardar(datos) {
-        const sql = "INSERT INTO usuarios (nombre, gmail, contraseña, rol, estado_permiso) VALUES (?, ?, ?, 'usuario', 'pendiente')";
-        const [result] = await pool.query(sql, [datos.nombre, datos.gmail, datos.contraseña]);
-        return result;
     }
 
     async validarUsuarioPorEmail(gmail) {
@@ -64,7 +51,25 @@ class UsuarioModel {
         return rows;
     }
 
-    // Métodos para clientes - deberían estar en clienteModel, pero los dejamos por compatibilidad con código existente
+    // ===== NUEVOS MÉTODOS PARA PRECIO POR USUARIO =====
+    async obtenerPrecioUsuario(usuarioId) {
+        const sql = "SELECT precio_bidon FROM usuarios WHERE id = ?";
+        const [rows] = await pool.query(sql, [usuarioId]);
+        if (rows.length > 0) {
+            return rows[0].precio_bidon;
+        }
+        // Si no existe, retornar 0 (o podrías obtener de configuración global)
+        return 0;
+    }
+
+    async actualizarPrecioUsuario(usuarioId, nuevoPrecio) {
+        const sql = "UPDATE usuarios SET precio_bidon = ? WHERE id = ?";
+        const [result] = await pool.query(sql, [nuevoPrecio, usuarioId]);
+        return result;
+    }
+    // ==================================================
+
+    // Métodos para clientes (se mantienen por compatibilidad)
     async obtenerClientePorId(id) {
         const sql = "SELECT * FROM clientes WHERE id = ?";
         const [rows] = await pool.query(sql, [id]);

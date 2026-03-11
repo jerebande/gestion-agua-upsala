@@ -1,7 +1,8 @@
+// controllers/clientes.js
 const ClienteModel = require("../models/clientes"); 
 const clienteModel = new ClienteModel();
-const ConfiguracionModel = require("../models/configuracion");
-const configuracionModel = new ConfiguracionModel();
+const UsuarioModel = require("../models/usuarios"); // <-- NUEVO
+const usuarioModel = new UsuarioModel();            // <-- NUEVO
 
 class ClienteController {
     
@@ -188,7 +189,9 @@ class ClienteController {
                 return res.status(404).send("Cliente no encontrado o no tiene permiso.");
             }
 
-            const precio_bidon = await configuracionModel.obtenerPrecioBidon();
+            // Obtener el precio del usuario actual
+            const precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId); // <-- CAMBIADO
+
             await clienteModel.agregarCuenta({
                 cliente_id: id,
                 estado_pago,
@@ -215,7 +218,8 @@ class ClienteController {
             }
 
             const cuentasData = await clienteModel.obtenerCuentasPorCliente(id, pagina);
-            const precioActual = await configuracionModel.obtenerPrecioBidon();
+            // Obtener el precio del usuario actual
+            const precioActual = await usuarioModel.obtenerPrecioUsuario(usuarioId); // <-- CAMBIADO
 
             res.render("detalleCliente", { 
                 cliente, 

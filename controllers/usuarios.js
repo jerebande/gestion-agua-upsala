@@ -1,7 +1,10 @@
+// controllers/usuarios.js
 const UsuarioModel = require("../models/usuarios");
 const usuarioModel = new UsuarioModel();
 const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
+const ConfiguracionModel = require("../models/configuracion"); // <-- NUEVO
+const configuracionModel = new ConfiguracionModel();           // <-- NUEVO
 
 class UsuarioController {
     async mostrarInvitaciones(req, res) {
@@ -112,8 +115,12 @@ class UsuarioController {
                     error: "El correo ya está en uso" 
                 });
             }
-    
-            await usuarioModel.guardar({ nombre, gmail, contraseña });
+
+            // Obtener precio por defecto desde la configuración global
+            const precioDefecto = await configuracionModel.obtenerPrecioBidon();
+
+            // Pasar el precio por defecto al modelo
+            await usuarioModel.guardar({ nombre, gmail, contraseña }, precioDefecto);
             res.redirect("/login");
         } catch (error) {
             console.error("Error al guardar usuario:", error);
