@@ -6,6 +6,49 @@
     <title>Detalle - <%= cliente.nombre %></title>
     <link rel="stylesheet" href="/public/css/detallecliente.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Estilos adicionales para el modal con pestañas */
+        .payment-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .payment-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            background: var(--bg-secondary);
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .payment-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        .payment-tab-content {
+            display: none;
+        }
+        .payment-tab-content.active {
+            display: block;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-group input {
+            flex: 1;
+        }
+        .input-group span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -30,11 +73,23 @@
         <div class="info-card">
             <div class="info-stat">
                 <span class="stat-label">Bidones en Poder</span>
-                <span class="stat-value highlight-blue"><%= cliente.bidones_adeudados %></span>
+                <span class="stat-value highlight-blue">
+                    <%
+                        let bidonesVal = Number(cliente.bidones_adeudados);
+                        let bidonesMostrar = bidonesVal % 1 === 0 ? bidonesVal.toString() : bidonesVal.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                    %>
+                    <%= bidonesMostrar %>
+                </span>
             </div>
             <div class="info-stat">
                 <span class="stat-label">Precio Unitario</span>
-                <span class="stat-value">$<%= precioActual %></span>
+                <span class="stat-value">
+                    <%
+                        let precioVal = Number(precioActual);
+                        let precioMostrar = precioVal % 1 === 0 ? precioVal.toString() : precioVal.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                    %>
+                    $<%= precioMostrar %>
+                </span>
             </div>
         </div>
 
@@ -80,7 +135,7 @@
                 <div class="form-summary">
                     <div class="summary-item">
                         <span>Precio unitario:</span>
-                        <strong>$<%= precioActual %></strong>
+                        <strong>$<%= precioMostrar %></strong>
                     </div>
                     <div class="summary-total">
                         <span>Total:</span>
@@ -119,74 +174,83 @@
                                 <th class="text-center">Acción</th>
                             </tr>
                         </thead>
-                      <tbody>
-    <% cuentas.forEach((cuenta, index) => { %>
-        <tr class="table-row-hover">
-            <td data-label="Estado">
-                <% if (cuenta.estado_pago == 1) { %>
-                    <span class="badge badge-success">
-                        <i class="fas fa-check"></i> Pagado
-                    </span>
-                <% } else if (cuenta.estado_pago == 2) { %>
-                    <span class="badge badge-transfer">
-                        <i class="fas fa-exchange-alt"></i> Transferencia
-                    </span>
-                <% } else { %>
-                    <span class="badge badge-pending">
-                        <i class="fas fa-clock"></i> Fiado
-                    </span>
-                <% } %>
-            </td>
-            <td data-label="Cantidad">
-                <span class="qty-badge">
-                    <%= cuenta.cantidad_bidones %> u.
-                </span>
-            </td>
-            <td data-label="Total">
-                <span class="price-display">$<%= cuenta.total %></span>
-            </td>
-            <td data-label="Fecha">
-                <span class="date-cell">
-                    <%= new Date(cuenta.fecha_publicacion).toLocaleDateString('es-AR', { 
-                        day: '2-digit', 
-                        month: '2-digit',
-                        year: '2-digit'
-                    }) %>
-                </span>
-            </td>
-            <td class="text-center action-cell">
-                <div class="action-buttons">
-                    <% if (cuenta.estado_pago == 0) { %>
-                        <!-- Grupo de botones de pago (completo + parcial) -->
-                        <div class="payment-group">
-                            <!-- Botón Pago completo (antes "Pagó todo") -->
-                            <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/actualizarEstadoPago" method="POST" style="display: inline;" onsubmit="return confirm('¿Marcar como pagado?')">
-                                <input type="hidden" name="estado_pago" value="1">
-                                <button type="submit" class="btn-payment btn-complete" title="Pago completo">
-                                    <i class="fas fa-check-circle"></i>   
-                                    <span class="btn-text">Pago completo</span>
-                                </button>
-                            </form>
-                            
-                            <!-- Botón Pago Parcial -->
-                            <button type="button" class="btn-payment btn-partial" title="Pago parcial" onclick="openPartialPaymentModal(<%= cuenta.id %>, <%= cliente.id %>, <%= cuenta.cantidad_bidones %>)">
-                                <i class="fas fa-coins"></i>
-                                <span class="btn-text">Parcial</span>
-                            </button>
-                        </div>
-                    <% } %>
-                    
-                    <!-- Botón Eliminar (siempre disponible) -->
-                    <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/eliminar" method="POST" style="display: inline;" onsubmit="return confirm('¿Eliminar este registro?')">
-                        <button type="submit" class="btn-delete" title="Eliminar">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </form>
-                </div>
-            </td>
-        </tr>
-    <% }); %>
-</tbody>
+                        <tbody>
+                            <% cuentas.forEach((cuenta, index) => { 
+                                // Formatear cantidad de bidones sin decimales innecesarios
+                                const cantidadFormateada = (() => {
+                                    let num = Number(cuenta.cantidad_bidones);
+                                    if (num % 1 === 0) return num.toString();
+                                    return num.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                                })();
+                                const totalFormateado = Number(cuenta.total).toFixed(2).replace('.', ',');
+                            %>
+                                <tr class="table-row-hover">
+                                    <td data-label="Estado">
+                                        <% if (cuenta.estado_pago == 1) { %>
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check"></i> Pagado
+                                            </span>
+                                        <% } else if (cuenta.estado_pago == 2) { %>
+                                            <span class="badge badge-transfer">
+                                                <i class="fas fa-exchange-alt"></i> Transferencia
+                                            </span>
+                                        <% } else { %>
+                                            <span class="badge badge-pending">
+                                                <i class="fas fa-clock"></i> Fiado
+                                            </span>
+                                        <% } %>
+                                    </td>
+                                    <td data-label="Cantidad">
+                                        <span class="qty-badge">
+                                            <%= cantidadFormateada %> u.
+                                        </span>
+                                    </td>
+                                    <td data-label="Total">
+                                        <span class="price-display">$<%= totalFormateado %></span>
+                                    </td>
+                                    <td data-label="Fecha">
+                                        <span class="date-cell">
+                                            <%= new Date(cuenta.fecha_publicacion).toLocaleDateString('es-AR', { 
+                                                day: '2-digit', 
+                                                month: '2-digit',
+                                                year: '2-digit'
+                                            }) %>
+                                        </span>
+                                    </td>
+                                    <td class="text-center action-cell">
+                                        <div class="action-buttons">
+                                            <% if (cuenta.estado_pago == 0) { %>
+                                                <!-- Grupo de botones de pago (completo + parcial) -->
+                                                <div class="payment-group">
+                                                    <!-- Botón Pago completo -->
+                                                    <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/actualizarEstadoPago" method="POST" style="display: inline;" onsubmit="return confirm('¿Marcar como pagado?')">
+                                                        <input type="hidden" name="estado_pago" value="1">
+                                                        <button type="submit" class="btn-payment btn-complete" title="Pago completo">
+                                                            <i class="fas fa-check-circle"></i>   
+                                                            <span class="btn-text">Pago completo</span>
+                                                        </button>
+                                                    </form>
+                                                    
+                                                    <!-- Botón Pago Parcial -->
+                                                    <button type="button" class="btn-payment btn-partial" title="Pago parcial" 
+                                                        onclick="openPartialPaymentModal(<%= cuenta.id %>, <%= cliente.id %>, <%= cuenta.cantidad_bidones %>, <%= cuenta.precio_bidon %>)">
+                                                        <i class="fas fa-coins"></i>
+                                                        <span class="btn-text">Parcial</span>
+                                                    </button>
+                                                </div>
+                                            <% } %>
+                                            
+                                            <!-- Botón Eliminar -->
+                                            <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/eliminar" method="POST" style="display: inline;" onsubmit="return confirm('¿Eliminar este registro?')">
+                                                <button type="submit" class="btn-delete" title="Eliminar">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
                     </table>
                 </div>
 
@@ -227,216 +291,369 @@
         </section>
 
         <!-- Sección: Control de Envases -->
-       <section class="card card-accent">
-    <div class="card-header">
-        <div class="card-icon warning">
-            <i class="fas fa-box"></i>
-        </div>
-        <div>
-            <h2 class="card-title">Control de Envases</h2>
-            <p class="card-subtitle">Gestión de bidones en poder del cliente</p>
-        </div>
-    </div>
-
-    <div class="envases-container">
-        <div class="envases-status">
-            <span class="status-label">Estado Actual</span>
-            <div class="status-main">
-                <i class="fas fa-wine-bottle"></i>
-                <span class="counter-value" id="displayActual"><%= cliente.bidones_adeudados %></span>
-                <span class="status-unit">Bidones</span>
-            </div>
-        </div>
-
-        <form id="formUpdateBidones" action="/clientes/<%= cliente.id %>/actualizar-bidones" method="POST" class="form-stepper-container">
-            <label class="stepper-label">Ajustar Cantidad</label>
-            <div class="stepper-wrapper">
-                <button type="button" class="stepper-btn" onclick="adjustValue(-1)">
-                    <i class="fas fa-minus"></i>
-                </button>                                               
-                <input 
-                    type="number" 
-                    name="bidonesAdeudados" 
-                    id="inputBidones" 
-                    value="<%= cliente.bidones_adeudados %>" 
-                    min="0"
-                    max="999"
-                    required
-                    readonly
-                >
-                <button type="button" class="stepper-btn" onclick="adjustValue(1)">
-                    <i class="fas fa-plus"></i>
-                </button>
+        <section class="card card-accent">
+            <div class="card-header">
+                <div class="card-icon warning">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div>
+                    <h2 class="card-title">Control de Envases</h2>
+                    <p class="card-subtitle">Gestión de bidones en poder del cliente</p>
+                </div>
             </div>
 
-            <button type="button" class="btn btn-primary btn-update-modern" onclick="confirmarActualizacion()">
-                <i class="fas fa-save"></i>
-                Guardar Cambios
-            </button>
-        </form>
-    </div>
-</section>
-</section>
-
-    <!-- Modal Pago Parcial (mejorado: sin botón cancelar, input simplificado) -->
-    <div id="partialPaymentModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Registrar Pago Parcial</h3>
-                <button type="button" class="modal-close" onclick="closePartialPaymentModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="payment-info">
-                    <div class="info-row">
-                        <span class="info-label">Cantidad Solicitada:</span>
-                        <span class="info-value"><span id="originalQty">0</span> bidones</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Monto Total:</span>
-                        <span class="info-value">$<span id="totalAmount">0</span></span>
+            <div class="envases-container">
+                <div class="envases-status">
+                    <span class="status-label">Estado Actual</span>
+                    <div class="status-main">
+                        <i class="fas fa-wine-bottle"></i>
+                        <span class="counter-value" id="displayActual">
+                            <%
+                                let bidonesVal2 = Number(cliente.bidones_adeudados);
+                                let bidonesMostrar2 = bidonesVal2 % 1 === 0 ? bidonesVal2.toString() : bidonesVal2.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                            %>
+                            <%= bidonesMostrar2 %>
+                        </span>
+                        <span class="status-unit">Bidones</span>
                     </div>
                 </div>
 
-                <form id="partialPaymentForm" method="POST">
-                    <div class="form-group">
-                        <label for="cantidadPagada">Cantidad Pagada (bidones)</label>
+                <form id="formUpdateBidones" action="/clientes/<%= cliente.id %>/actualizar-bidones" method="POST" class="form-stepper-container">
+                    <label class="stepper-label">Ajustar Cantidad</label>
+                    <div class="stepper-wrapper">
+                        <button type="button" class="stepper-btn" onclick="adjustValue(-1)">
+                            <i class="fas fa-minus"></i>
+                        </button>                                               
                         <input 
                             type="number" 
-                            id="cantidadPagada" 
-                            name="cantidad_pagada" 
-                            min="1" 
+                            name="bidonesAdeudados" 
+                            id="inputBidones" 
+                            value="<%= cliente.bidones_adeudados %>" 
+                            min="0"
                             max="999"
-                            required 
-                            placeholder="Ej: 2"
-                            class="form-control"
+                            step="0.01"
+                            required
+                            readonly
                         >
-                        <small class="input-hint">Ingresa la cantidad de bidones que pagó</small>
-                    </div>
-
-                    <div class="payment-breakdown">
-                        <div class="breakdown-row">
-                            <span>Pagado:</span>
-                            <strong>$<span id="paidAmount">0</span></strong>
-                        </div>
-                        <div class="breakdown-row">
-                            <span>Resta:</span>
-                            <strong class="remaining">$<span id="remainingAmount">0</span></strong>
-                        </div>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-primary btn-block">
-                            <i class="fas fa-check"></i>
-                            Confirmar Pago
+                        <button type="button" class="stepper-btn" onclick="adjustValue(1)">
+                            <i class="fas fa-plus"></i>
                         </button>
                     </div>
+
+                    <button type="button" class="btn btn-primary btn-update-modern" onclick="confirmarActualizacion()">
+                        <i class="fas fa-save"></i>
+                        Guardar Cambios
+                    </button>
                 </form>
             </div>
+        </section>
+
+        <!-- Modal Pago Parcial (con opciones cantidad / monto) -->
+        <div id="partialPaymentModal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Registrar Pago Parcial</h3>
+                    <button type="button" class="modal-close" onclick="closePartialPaymentModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="payment-info">
+                        <div class="info-row">
+                            <span class="info-label">Total de la cuenta:</span>
+                            <span class="info-value">$<span id="totalAmount">0</span></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Bidones:</span>
+                            <span class="info-value"><span id="originalQty">0</span> u. a $<span id="unitPrice"><%= precioMostrar %></span> c/u</span>
+                        </div>
+                    </div>
+
+                    <!-- Pestañas de selección -->
+                    <div class="payment-tabs">
+                        <div class="payment-tab active" onclick="switchPaymentTab('cantidad')">Por Cantidad</div>
+                        <div class="payment-tab" onclick="switchPaymentTab('monto')">Por Monto</div>
+                    </div>
+
+                    <form id="partialPaymentForm" method="POST">
+                        <!-- Contenido para pago por cantidad -->
+                        <div id="tab-cantidad" class="payment-tab-content active">
+                            <div class="form-group">
+                                <label for="cantidadPagada">Cantidad de bidones a pagar</label>
+                                <div class="input-group">
+                                    <input 
+                                        type="number" 
+                                        id="cantidadPagada" 
+                                        min="0.01" 
+                                        step="0.01"
+                                        placeholder="Ej: 2,5"
+                                        class="form-control"
+                                    >
+                                    <span>u.</span>
+                                </div>
+                                <small class="input-hint">Equivale a $<span id="montoCalculado">0</span></small>
+                            </div>
+                        </div>
+
+                        <!-- Contenido para pago por monto -->
+                        <div id="tab-monto" class="payment-tab-content">
+                            <div class="form-group">
+                                <label for="montoPagado">Monto a pagar ($)</label>
+                                <input 
+                                    type="number" 
+                                    id="montoPagado" 
+                                    min="0.01" 
+                                    step="0.01"
+                                    placeholder="Ej: 6000"
+                                    class="form-control"
+                                >
+                                <small class="input-hint">Ingresa el monto en pesos</small>
+                            </div>
+                        </div>
+
+                        <!-- Campo oculto que se enviará al servidor (siempre el monto) -->
+                        <input type="hidden" id="montoFinal" name="monto_pagado">
+
+                        <div class="payment-breakdown">
+                            <div class="breakdown-row">
+                                <span>Pagado:</span>
+                                <strong>$<span id="paidAmount">0</span></strong>
+                            </div>
+                            <div class="breakdown-row">
+                                <span>Resta:</span>
+                                <strong class="remaining">$<span id="remainingAmount">0</span></strong>
+                            </div>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-check"></i>
+                                Confirmar Pago
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
     <script>
+        // Función para formatear monto con coma decimal (solo para visualización)
+        function formatearMonto(valor) {
+            return valor.toFixed(2).replace('.', ',');
+        }
+
+        // Función para formatear cantidad de bidones sin decimales innecesarios (para visualización con coma)
+        function formatearBidones(valor) {
+            let num = Number(valor);
+            if (isNaN(num)) return '0';
+            if (num % 1 === 0) {
+                return num.toString();
+            } else {
+                return num.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+            }
+        }
+
+        // Función para formatear números en el input (con punto decimal, sin decimales si es entero)
+        function formatearNumero(valor) {
+            let num = Number(valor);
+            if (isNaN(num)) return '0';
+            if (num % 1 === 0) {
+                return num.toString();
+            } else {
+                return num.toFixed(2);
+            }
+        }
+
+        // Variables globales
         let currentCuentaId = null;
         let currentClienteId = null;
-        let currentQuantity = 0;
-        const unitPrice = <%= precioActual %>;
+        let currentTotal = 0;
+        let unitPrice = 0;
+        let currentMaxCantidad = 0;
 
-        function openPartialPaymentModal(cuentaId, clienteId, quantity) {
+        // Elementos del modal
+        const modal = document.getElementById('partialPaymentModal');
+        const tabCantidad = document.getElementById('tab-cantidad');
+        const tabMonto = document.getElementById('tab-monto');
+        const inputCantidad = document.getElementById('cantidadPagada');
+        const inputMonto = document.getElementById('montoPagado');
+        const montoCalculadoSpan = document.getElementById('montoCalculado');
+        const paidAmountSpan = document.getElementById('paidAmount');
+        const remainingSpan = document.getElementById('remainingAmount');
+        const montoFinalInput = document.getElementById('montoFinal');
+        const totalAmountSpan = document.getElementById('totalAmount');
+        const originalQtySpan = document.getElementById('originalQty');
+        const unitPriceSpan = document.getElementById('unitPrice');
+
+        function openPartialPaymentModal(cuentaId, clienteId, cantidad, precio) {
             currentCuentaId = cuentaId;
             currentClienteId = clienteId;
-            currentQuantity = quantity;
+            currentTotal = cantidad * precio;
+            unitPrice = precio;
+            currentMaxCantidad = cantidad;
 
-            document.getElementById('originalQty').textContent = quantity;
-            document.getElementById('totalAmount').textContent = quantity * unitPrice;
-            document.getElementById('cantidadPagada').value = '';
-            document.getElementById('cantidadPagada').max = quantity;
-            
-            document.getElementById('partialPaymentModal').style.display = 'flex';
-            document.getElementById('cantidadPagada').focus();
+            // Mostrar información formateada
+            originalQtySpan.textContent = formatearBidones(cantidad);
+            unitPriceSpan.textContent = formatearBidones(precio);
+            totalAmountSpan.textContent = formatearMonto(currentTotal);
+
+            // Resetear inputs
+            inputCantidad.value = '';
+            inputMonto.value = '';
+            montoCalculadoSpan.textContent = '0,00';
+            paidAmountSpan.textContent = '0,00';
+            remainingSpan.textContent = formatearMonto(currentTotal);
+            montoFinalInput.value = '';
+
+            // Activar pestaña por defecto (cantidad)
+            switchPaymentTab('cantidad');
+
+            modal.style.display = 'flex';
+            if (document.querySelector('.payment-tab.active').textContent.includes('Cantidad')) {
+                inputCantidad.focus();
+            } else {
+                inputMonto.focus();
+            }
         }
 
         function closePartialPaymentModal() {
-            document.getElementById('partialPaymentModal').style.display = 'none';
-            document.getElementById('partialPaymentForm').reset();
+            modal.style.display = 'none';
         }
 
-        // Actualizar cálculo en tiempo real
-        document.getElementById('cantidadPagada').addEventListener('input', function() {
-            const cantidadPagada = parseInt(this.value) || 0;
-            const total = currentQuantity * unitPrice;
-            const resto = currentQuantity - cantidadPagada;
+        function switchPaymentTab(tab) {
+            // Actualizar pestañas
+            document.querySelectorAll('.payment-tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.payment-tab-content').forEach(el => el.classList.remove('active'));
             
-            document.getElementById('paidAmount').textContent = cantidadPagada * unitPrice;
-            document.getElementById('remainingAmount').textContent = resto * unitPrice;
-        });
+            if (tab === 'cantidad') {
+                document.querySelectorAll('.payment-tab')[0].classList.add('active');
+                tabCantidad.classList.add('active');
+                inputCantidad.focus();
+                if (inputCantidad.value) {
+                    actualizarDesdeCantidad();
+                } else {
+                    // Si no hay valor, limpiar los montos
+                    paidAmountSpan.textContent = '0,00';
+                    remainingSpan.textContent = formatearMonto(currentTotal);
+                    montoFinalInput.value = '';
+                }
+            } else {
+                document.querySelectorAll('.payment-tab')[1].classList.add('active');
+                tabMonto.classList.add('active');
+                inputMonto.focus();
+                if (inputMonto.value) {
+                    actualizarDesdeMonto();
+                } else {
+                    paidAmountSpan.textContent = '0,00';
+                    remainingSpan.textContent = formatearMonto(currentTotal);
+                    montoFinalInput.value = '';
+                }
+            }
+        }
 
-        // Enviar formulario
+        // Actualizar cuando cambia la cantidad
+        inputCantidad.addEventListener('input', actualizarDesdeCantidad);
+
+        // Actualizar cuando cambia el monto
+        inputMonto.addEventListener('input', actualizarDesdeMonto);
+
+        function actualizarDesdeCantidad() {
+            let cantidad = parseFloat(inputCantidad.value) || 0;
+            if (cantidad < 0) cantidad = 0;
+            if (cantidad > currentMaxCantidad) {
+                cantidad = currentMaxCantidad;
+                inputCantidad.value = cantidad;
+            }
+            const monto = cantidad * unitPrice;
+            montoCalculadoSpan.textContent = formatearMonto(monto);
+            paidAmountSpan.textContent = formatearMonto(monto);
+            remainingSpan.textContent = formatearMonto(currentTotal - monto);
+            // Guardamos con punto para el servidor (usando toFixed)
+            montoFinalInput.value = monto.toFixed(2);
+        }
+
+        function actualizarDesdeMonto() {
+            let monto = parseFloat(inputMonto.value) || 0;
+            if (monto < 0) monto = 0;
+            if (monto > currentTotal) {
+                monto = currentTotal;
+                inputMonto.value = monto;
+            }
+            paidAmountSpan.textContent = formatearMonto(monto);
+            remainingSpan.textContent = formatearMonto(currentTotal - monto);
+            montoFinalInput.value = monto.toFixed(2);
+        }
+
+        // Validar antes de enviar
         document.getElementById('partialPaymentForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const cantidadPagada = parseInt(document.getElementById('cantidadPagada').value);
+            const montoFinal = parseFloat(montoFinalInput.value);
             
-            if (cantidadPagada <= 0 || cantidadPagada > currentQuantity) {
-                alert('Cantidad inválida');
+            if (!montoFinal || montoFinal <= 0) {
+                alert('Debe ingresar un monto válido');
                 return;
             }
 
+            if (montoFinal > currentTotal) {
+                alert('El monto no puede superar el total de la cuenta');
+                return;
+            }
+
+            // Asignar la acción y enviar
             const form = this;
             form.action = `/clientes/${currentClienteId}/cuentas/${currentCuentaId}/pago-parcial`;
             form.submit();
         });
 
-        // Cerrar modal al presionar ESC
+        // Cerrar modal con ESC o clic fuera
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const modal = document.getElementById('partialPaymentModal');
-                if (modal.style.display === 'flex') {
-                    closePartialPaymentModal();
+            if (e.key === 'Escape') closePartialPaymentModal();
+        });
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closePartialPaymentModal();
+        });
+
+        // Funciones para el stepper de bidones
+        function adjustValue(delta) {
+            const input = document.getElementById('inputBidones');
+            let current = parseFloat(input.value) || 0;
+            let newValue = current + delta;
+            if (newValue >= 0 && newValue <= 999) {
+                input.value = formatearNumero(newValue);
+                
+                const btnSave = document.querySelector('.btn-update-modern');
+                const actual = <%= cliente.bidones_adeudados %>;
+                
+                if (Math.abs(newValue - actual) > 0.001) {
+                    btnSave.style.background = 'var(--primary)';
+                } else {
+                    btnSave.style.background = 'var(--text-primary)';
                 }
             }
-        });
+        }
 
-        // Cerrar modal al hacer clic fuera
-        document.getElementById('partialPaymentModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePartialPaymentModal();
+        function confirmarActualizacion() {
+            const cantidad = document.getElementById('inputBidones').value;
+            const actual = <%= cliente.bidones_adeudados %>;
+            
+            if (parseFloat(cantidad) === actual) {
+                return;
+            }
+
+            if (confirm(`¿Confirmas que el cliente ahora tiene ${cantidad.replace('.', ',')} bidones?`)) {
+                document.getElementById('formUpdateBidones').submit();
+            }
+        }
+
+        // Formatear el valor inicial del input al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('inputBidones');
+            if (input) {
+                input.value = formatearNumero(input.value);
             }
         });
 
-        function adjustValue(delta) {
-    const input = document.getElementById('inputBidones');
-    let newValue = parseInt(input.value) + delta;
-      
-    // Validar límites (0 - 999)
-    if (newValue >= 0 && newValue <= 999) {
-        input.value = newValue;
-        
- 
-        const btnSave = document.querySelector('.btn-update-modern');
-        const actual = <%= cliente.bidones_adeudados %>;
-        
-        if (newValue !== actual) {
-            btnSave.style.background = 'var(--primary)';
-        } else {
-            btnSave.style.background = 'var(--text-primary)';
-        }
-    }
-}
-
-// Mantén tu función de confirmarActualizacion() pero puedes mejorar el alert
-function confirmarActualizacion() {
-    const cantidad = document.getElementById('inputBidones').value;
-    const actual = <%= cliente.bidones_adeudados %>;
-    
-    if (parseInt(cantidad) === actual) {
-        return; // No hacer nada si es igual
-    }
-
-    if (confirm(`¿Confirmas que el cliente ahora tiene ${cantidad} bidones?`)) {
-        document.getElementById('formUpdateBidones').submit();
-    }
-}
-        // Cálculo dinámico del total
+        // Cálculo dinámico del total en nueva venta
         const precioActual = <%= precioActual %>;
         const cantidadInput = document.getElementById('cantidad_bidones');
         const totalPrice = document.querySelector('.total-price');
@@ -444,13 +661,11 @@ function confirmarActualizacion() {
         function actualizarTotal() {
             const cantidad = parseInt(cantidadInput.value) || 0;
             const total = cantidad * precioActual;
-            totalPrice.textContent = `$${total}`;
+            totalPrice.textContent = `$${total.toFixed(2).replace('.', ',')}`;
         }
 
         cantidadInput.addEventListener('input', actualizarTotal);
         actualizarTotal();
-
-       
     </script>
 </body>
 </html>

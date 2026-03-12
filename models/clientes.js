@@ -150,14 +150,24 @@ class ClienteModel {
         return result;
     }
 
+    
     async agregarCuenta({ cliente_id, estado_pago, cantidad_bidones, precio_bidon }) {
-        const sql = `
-            INSERT INTO cuentas (cliente_id, estado_pago, cantidad_bidones, precio_bidon)
-            VALUES (?, ?, ?, ?)
-        `;
-        const [result] = await pool.query(sql, [cliente_id, estado_pago, cantidad_bidones, precio_bidon]);
-        return result;
-    }
+    // Calcular el total
+    const total = cantidad_bidones * precio_bidon;
+
+    const sql = `
+        INSERT INTO cuentas (cliente_id, estado_pago, cantidad_bidones, precio_bidon, total)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    const [result] = await pool.query(sql, [
+        cliente_id,
+        estado_pago,
+        cantidad_bidones,
+        precio_bidon,
+        total
+    ]);
+    return result;
+}
 
     async actualizarDatosBasicos(id, { nombre, direccion, telefono }) {
         const sql = "UPDATE clientes SET nombre = ?, direccion = ?, telefono = ? WHERE id = ?";
@@ -177,28 +187,35 @@ class ClienteModel {
         return result;
     }
 
-    async registrarPagoParcial(idCuenta, cantidadPagada) {
+    // ***** MÉTODO MODIFICADO: ahora recibe montoPagado (decimal) *****
+    async registrarPagoParcial(idCuenta, montoPagado) {
         const cuenta = await this.obtenerCuentaPorId(idCuenta);
         if (!cuenta) throw new Error('Cuenta no encontrada');
 
         const cantidadActual = Number(cuenta.cantidad_bidones) || 0;
         const precio = Number(cuenta.precio_bidon) || 0;
+        const totalActual = cantidadActual * precio;
 
-        if (cantidadPagada <= 0) throw new Error('Cantidad pagada inválida');
+        if (montoPagado <= 0) throw new Error('Monto pagado inválido');
+        if (montoPagado > totalActual) throw new Error('El monto pagado no puede superar el total de la cuenta');
 
-        if (cantidadPagada >= cantidadActual) {
-            const nuevoTotal = cantidadActual * precio;
+        // Si el monto pagado cubre todo el total (con tolerancia por decimales)
+        if (Math.abs(montoPagado - totalActual) < 0.01) {
             const sqlUpdate = `UPDATE cuentas SET estado_pago = 1, total = ? WHERE id = ?`;
-            const [result] = await pool.query(sqlUpdate, [nuevoTotal, idCuenta]);
+            const [result] = await pool.query(sqlUpdate, [totalActual, idCuenta]);
             return result;
         } else {
+            // Calcular la cantidad de bidones que corresponden al monto pagado
+            const cantidadPagada = montoPagado / precio; // puede ser decimal
             const restante = cantidadActual - cantidadPagada;
             const totalRestante = restante * precio;
-            const totalPagado = cantidadPagada * precio;
+            const totalPagado = montoPagado;
 
+            // Actualizar la cuenta original con el resto
             const sqlUpdateOriginal = `UPDATE cuentas SET cantidad_bidones = ?, total = ? WHERE id = ?`;
             await pool.query(sqlUpdateOriginal, [restante, totalRestante, idCuenta]);
 
+            // Insertar una nueva cuenta con lo pagado (estado = pagado)
             const sqlInsertPago = `
                 INSERT INTO cuentas (cliente_id, estado_pago, cantidad_bidones, precio_bidon, total)
                 VALUES (?, 1, ?, ?, ?)

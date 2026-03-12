@@ -1,8 +1,7 @@
-// controllers/clientes.js
 const ClienteModel = require("../models/clientes"); 
 const clienteModel = new ClienteModel();
-const UsuarioModel = require("../models/usuarios"); // <-- NUEVO
-const usuarioModel = new UsuarioModel();            // <-- NUEVO
+const UsuarioModel = require("../models/usuarios");
+const usuarioModel = new UsuarioModel();
 
 class ClienteController {
     
@@ -149,14 +148,15 @@ class ClienteController {
         }
     }
 
+    // ***** MÉTODO MODIFICADO: ahora recibe monto_pagado *****
     async registrarPagoParcial(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { idCliente, idCuenta } = req.params;
-        const cantidad_pagada = parseInt(req.body.cantidad_pagada, 10);
+        const monto_pagado = parseFloat(req.body.monto_pagado); // cambio aquí
         const usuarioId = req.session.usuario.id;
 
-        if (!cantidad_pagada || cantidad_pagada <= 0) {
-            return res.status(400).send('Cantidad pagada inválida');
+        if (!monto_pagado || monto_pagado <= 0) {
+            return res.status(400).send('Monto pagado inválido');
         }
 
         try {
@@ -165,7 +165,7 @@ class ClienteController {
             const cliente = await clienteModel.obtenerClientePorId(cuenta.cliente_id, usuarioId);
             if (!cliente) return res.status(403).send("No tiene permiso para modificar esta cuenta.");
 
-            await clienteModel.registrarPagoParcial(idCuenta, cantidad_pagada);
+            await clienteModel.registrarPagoParcial(idCuenta, monto_pagado); // pasar monto
             res.redirect(`/clientes/${idCliente}`);
         } catch (error) {
             console.error('Error al registrar pago parcial:', error);
@@ -190,7 +190,7 @@ class ClienteController {
             }
 
             // Obtener el precio del usuario actual
-            const precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId); // <-- CAMBIADO
+            const precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId);
 
             await clienteModel.agregarCuenta({
                 cliente_id: id,
@@ -219,7 +219,7 @@ class ClienteController {
 
             const cuentasData = await clienteModel.obtenerCuentasPorCliente(id, pagina);
             // Obtener el precio del usuario actual
-            const precioActual = await usuarioModel.obtenerPrecioUsuario(usuarioId); // <-- CAMBIADO
+            const precioActual = await usuarioModel.obtenerPrecioUsuario(usuarioId);
 
             res.render("detalleCliente", { 
                 cliente, 

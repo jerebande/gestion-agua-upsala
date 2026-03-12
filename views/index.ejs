@@ -236,7 +236,14 @@
                                 <button onclick="eliminarCliente(<%= cliente.id %>)">Eliminar</button>
                             </div>
 
-                            <p>Bidones adeudados: <%= cliente.bidones_adeudados %></p>
+                            <%
+                                // Formateo de bidones adeudados sin decimales innecesarios
+                                let bidonesVal = Number(cliente.bidones_adeudados);
+                                let bidonesMostrar = bidonesVal % 1 === 0 
+                                    ? bidonesVal.toString() 
+                                    : bidonesVal.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                            %>
+                            <p>Bidones adeudados: <%= bidonesMostrar %></p>
                         </div>
                     <% }); %>
                 </div>
