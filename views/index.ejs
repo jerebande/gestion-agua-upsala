@@ -177,6 +177,47 @@
             background: #e0e0e0;
         }
 
+        /* --- PAGINADOR NUMÉRICO REPARADO (RESPONSIVE) --- */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;          /* Permite que los números salten a la siguiente línea */
+            gap: 8px;                 /* Espacio uniforme entre botones, en lugar de margin */
+            margin: 20px 0;
+        }
+        .pagination a {
+            text-decoration: none;
+            color: #ffffff;
+            background-color: #cfc1c1;
+            padding: 8px 12px;        /* Un poco más pequeño que antes */
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            min-width: 36px;           /* Ancho mínimo para que sean consistentes */
+            text-align: center;
+        }
+        .pagination a:hover {
+            background-color: rgb(0, 0, 128);
+            color: #fff;
+        }
+        .pagination a.active {
+            background-color: rgb(0, 0, 128);
+            font-weight: bold;
+        }
+        /* Ajuste para móviles muy pequeños */
+        @media (max-width: 480px) {
+            .pagination a {
+                padding: 6px 10px;
+                font-size: 14px;
+                min-width: 32px;
+            }
+            /* También reducimos un poco los días si es necesario */
+            .pagination-dias a {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+        }
+
         /* Nuevos estilos para bordes de estado */
         .cliente-card.border-green {
             border: 2px solid green;
@@ -350,7 +391,7 @@
                     <% }); %>
                 </div>
             <% } else { %>
-                <!-- Paginador numérico (para otros roles) - solo si hay páginas -->
+                <!-- Paginador numérico (para otros roles) - AHORA RESPONSIVE -->
                 <% if (totalPaginas > 0) { %>
                     <div class="pagination">
                         <% if (page > 1) { %>
