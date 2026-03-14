@@ -20,8 +20,8 @@ class UsuarioModel {
         return rows;
     }
 
-    // Guardar un nuevo usuario con precio por defecto
     async guardar(datos, precioDefecto = 0) {
+        // Asumimos que el rol por defecto es 'usuario'. Para crear 'gabriel' habría que modificar.
         const sql = "INSERT INTO usuarios (nombre, gmail, contraseña, rol, estado_permiso, precio_bidon) VALUES (?, ?, ?, 'usuario', 'pendiente', ?)";
         const [result] = await pool.query(sql, [datos.nombre, datos.gmail, datos.contraseña, precioDefecto]);
         return result;
@@ -51,14 +51,12 @@ class UsuarioModel {
         return rows;
     }
 
-    // ===== NUEVOS MÉTODOS PARA PRECIO POR USUARIO =====
     async obtenerPrecioUsuario(usuarioId) {
         const sql = "SELECT precio_bidon FROM usuarios WHERE id = ?";
         const [rows] = await pool.query(sql, [usuarioId]);
         if (rows.length > 0) {
             return rows[0].precio_bidon;
         }
-        // Si no existe, retornar 0 (o podrías obtener de configuración global)
         return 0;
     }
 
@@ -67,7 +65,6 @@ class UsuarioModel {
         const [result] = await pool.query(sql, [nuevoPrecio, usuarioId]);
         return result;
     }
-    // ==================================================
 
     // Métodos para clientes (se mantienen por compatibilidad)
     async obtenerClientePorId(id) {

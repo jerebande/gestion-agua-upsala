@@ -10,20 +10,20 @@
     <link rel="stylesheet" href="/public/css/index.css">
     <style>
         .badge-unread {
-    position: absolute;
-    right: 8px;           /* Ajusta para que quede centrado en el padding-right */
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: red;
-    color: white;
-    border-radius: 50%;
-    padding: 0.1px 0.1px;
-    font-size: 0.75rem;
-    min-width: 18px;
-    text-align: center;
-    box-sizing: border-box;
-    margin-left: 0;      
-}
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 0.1px 0.1px;
+            font-size: 0.75rem;
+            min-width: 18px;
+            text-align: center;
+            box-sizing: border-box;
+            margin-left: 0;      
+        }
         @media (max-width: 600px) {
             table th, table td {
                 padding: 10px 6px;
@@ -313,8 +313,12 @@
                         <tr>
                             <th>Cliente</th>
                             <th>Estado de Pago</th>
-                            <th>Cantidad</th>
-                            <th>Total</th>
+                            <% if (usuarioRol === 'gabriel') { %>
+                                <th>Monto</th>
+                            <% } else { %>
+                                <th>Cantidad</th>
+                                <th>Total</th>
+                            <% } %>
                             <th>Fecha</th>
                         </tr>
                     </thead>
@@ -338,14 +342,18 @@
                                             </span>
                                         <% } %>
                                     </td>
-                                    <td><%= cuenta.cantidad_bidones %> u.</td>
-                                    <td>$<%= cuenta.total %></td>
+                                    <% if (usuarioRol === 'gabriel') { %>
+                                        <td>$<%= cuenta.total %></td>
+                                    <% } else { %>
+                                        <td><%= cuenta.cantidad_bidones %> u.</td>
+                                        <td>$<%= cuenta.total %></td>
+                                    <% } %>
                                     <td><%= new Date(cuenta.fecha_publicacion).toLocaleString('es-AR') %></td>
                                 </tr>
                             <% }) %>
                         <% } else { %>
                             <tr id="no-results-row">
-                                <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-secondary);">
+                                <td colspan="<%= usuarioRol === 'gabriel' ? 4 : 5 %>" style="text-align: center; padding: 24px; color: var(--text-secondary);">
                                     No se encontraron transacciones para esta fecha.
                                 </td>
                             </tr>

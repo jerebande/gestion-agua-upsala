@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  
     <title>Lista de Clientes</title>  
     <link rel="stylesheet" href="/public/css/clientes.css">
+    <style>
+        /* Estilo adicional para el select */
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    </style>
 </head>  
 <body>  
-   
-
    <main>  
     <form action="/clientes" method="POST">  
         <h2>Agregar Cliente</h2>
@@ -22,12 +31,25 @@
             pattern="[0-9]+" 
             title="Por favor, ingrese solo números"
             required
-        >  
+        >
+
+        <!-- Campo día de reparto solo visible para usuario gabriel -->
+        <% if (usuario && usuario.rol === 'gabriel') { %>
+            <label for="dia_reparto">Día de reparto</label>
+            <select name="dia_reparto" id="dia_reparto" required>
+                <option value="">Seleccione un día</option>
+                <option value="lunes">Lunes</option>
+                <option value="martes">Martes</option>
+                <option value="miércoles">Miércoles</option>
+                <option value="jueves">Jueves</option>
+                <option value="viernes">Viernes</option>
+                <option value="sábado">Sábado</option>
+                <option value="domingo">Domingo</option>
+            </select>
+        <% } %>
         
         <button type="submit">Guardar Cliente</button>  
     </form>  
 </main>
-
-  
 </body>  
 </html>

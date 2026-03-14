@@ -1,10 +1,9 @@
-// controllers/usuarios.js
 const UsuarioModel = require("../models/usuarios");
 const usuarioModel = new UsuarioModel();
 const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
-const ConfiguracionModel = require("../models/configuracion"); // <-- NUEVO
-const configuracionModel = new ConfiguracionModel();           // <-- NUEVO
+const ConfiguracionModel = require("../models/configuracion");
+const configuracionModel = new ConfiguracionModel();
 
 class UsuarioController {
     async mostrarInvitaciones(req, res) {
@@ -28,24 +27,59 @@ class UsuarioController {
     async home(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
 
-        const { filtro, page = 1 } = req.query;
+        const { filtro, page = 1, dia } = req.query;
         const { id: usuarioId, rol } = req.session.usuario;
         const clientesPorPagina = 5;
 
         try {
-            const todosLosClientes = filtro 
-                ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
-                : await clienteModel.obtenerClientesPorUsuario(usuarioId);
+            let todosLosClientes;
+            let diaSeleccionado = null;
 
-            const clientes = todosLosClientes.slice((page - 1) * clientesPorPagina, page * clientesPorPagina);
+            if (rol === 'gabriel') {
+                diaSeleccionado = dia || 'lunes';
+                todosLosClientes = await clienteModel.obtenerClientesFiltrados(usuarioId, filtro, diaSeleccionado);
+                const fechaHoy = new Date().toISOString().split('T')[0];
+                for (let cliente of todosLosClientes) {
+                    cliente.totalFiadoHoy = await clienteModel.obtenerTotalFiadoPorClienteYFecha(cliente.id, fechaHoy);
+                }
+            } else {
+                todosLosClientes = filtro 
+                    ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
+                    : await clienteModel.obtenerClientesPorUsuario(usuarioId);
+            }
+
+            // Obtener estado semanal actual solo para rol gabriel
+            let estadosSemanales = {};
+            if (rol === 'gabriel') {
+                const fechaHoy = new Date();
+                const diaSemana = fechaHoy.getDay(); // 0 domingo, 1 lunes...
+                const diff = diaSemana === 0 ? 6 : diaSemana - 1;
+                const monday = new Date(fechaHoy);
+                monday.setDate(fechaHoy.getDate() - diff);
+                const semanaStr = monday.toISOString().split('T')[0];
+                estadosSemanales = await clienteModel.obtenerEstadosSemanalesPorUsuarioYSemana(usuarioId, semanaStr);
+            }
+
+            let clientes;
+            let totalPaginas = 1;
+
+            if (rol === 'gabriel') {
+                clientes = todosLosClientes;
+            } else {
+                clientes = todosLosClientes.slice((page - 1) * clientesPorPagina, page * clientesPorPagina);
+                totalPaginas = Math.ceil(todosLosClientes.length / clientesPorPagina);
+            }
+
             res.render("index", { 
                 nombreUsuario: req.session.usuario.nombre,
-                usuarioId: req.session.usuario.id,
+                usuarioId,
                 usuarioRol: rol,
                 clientes, 
                 filtro, 
                 page: Number(page), 
-                totalPaginas: Math.ceil(todosLosClientes.length / clientesPorPagina)
+                totalPaginas,
+                diaSeleccionado,
+                estadosSemanales  // será un objeto vacío si no es gabriel
             });
         } catch (error) {
             console.error("Error en home:", error);
@@ -116,10 +150,8 @@ class UsuarioController {
                 });
             }
 
-            // Obtener precio por defecto desde la configuración global
             const precioDefecto = await configuracionModel.obtenerPrecioBidon();
 
-            // Pasar el precio por defecto al modelo
             await usuarioModel.guardar({ nombre, gmail, contraseña }, precioDefecto);
             res.redirect("/login");
         } catch (error) {

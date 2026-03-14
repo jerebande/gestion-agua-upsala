@@ -3,7 +3,7 @@ const pool = require("../database/db");
 class ClienteModel {
     async obtenerClientesPorUsuario(usuarioId) {
         const sql = `
-            SELECT id, nombre, direccion, telefono, bidones_adeudados 
+            SELECT id, nombre, direccion, telefono, bidones_adeudados, dia_reparto
             FROM clientes 
             WHERE usuario_id = ?
         `;
@@ -11,15 +11,23 @@ class ClienteModel {
         return rows;
     }
 
-    async obtenerClientesFiltrados(usuarioId, filtro) {
-        const sql = `
-            SELECT id, nombre, direccion, telefono, bidones_adeudados
+    async obtenerClientesFiltrados(usuarioId, filtro = null, dia = null) {
+        let sql = `
+            SELECT id, nombre, direccion, telefono, bidones_adeudados, dia_reparto
             FROM clientes 
-            WHERE usuario_id = ? AND 
-            (nombre LIKE ? OR direccion LIKE ? OR telefono LIKE ?)
+            WHERE usuario_id = ? 
         `;
-        const f = `%${filtro}%`;
-        const [rows] = await pool.query(sql, [usuarioId, f, f, f]);
+        const params = [usuarioId];
+        if (filtro) {
+            sql += ` AND (nombre LIKE ? OR direccion LIKE ? OR telefono LIKE ?)`;
+            const f = `%${filtro}%`;
+            params.push(f, f, f);
+        }
+        if (dia) {
+            sql += ` AND dia_reparto = ?`;
+            params.push(dia);
+        }
+        const [rows] = await pool.query(sql, params);
         return rows;
     }
 
@@ -102,7 +110,7 @@ class ClienteModel {
 
     async obtenerClientePorId(id, usuarioId) {
         const sql = `
-            SELECT id, nombre, direccion, telefono, bidones_adeudados
+            SELECT id, nombre, direccion, telefono, bidones_adeudados, dia_reparto
             FROM clientes
             WHERE id = ? AND usuario_id = ?
         `;
@@ -141,33 +149,29 @@ class ClienteModel {
         return rows.length > 0 ? rows[0] : null;
     }
 
-    async guardarCliente({ nombre, direccion, telefono, usuario_id }) {
+    async guardarCliente({ nombre, direccion, telefono, usuario_id, dia_reparto = null }) {
         const query = `
-            INSERT INTO clientes (nombre, direccion, telefono, usuario_id, bidones_adeudados)
-            VALUES (?, ?, ?, ?, 0);
+            INSERT INTO clientes (nombre, direccion, telefono, usuario_id, bidones_adeudados, dia_reparto)
+            VALUES (?, ?, ?, ?, 0, ?);
         `;
-        const [result] = await pool.query(query, [nombre, direccion, telefono, usuario_id]);
+        const [result] = await pool.query(query, [nombre, direccion, telefono, usuario_id, dia_reparto]);
         return result;
     }
 
-    
-    async agregarCuenta({ cliente_id, estado_pago, cantidad_bidones, precio_bidon }) {
-    // Calcular el total
-    const total = cantidad_bidones * precio_bidon;
-
-    const sql = `
-        INSERT INTO cuentas (cliente_id, estado_pago, cantidad_bidones, precio_bidon, total)
-        VALUES (?, ?, ?, ?, ?)
-    `;
-    const [result] = await pool.query(sql, [
-        cliente_id,
-        estado_pago,
-        cantidad_bidones,
-        precio_bidon,
-        total
-    ]);
-    return result;
-}
+    async agregarCuenta({ cliente_id, estado_pago, cantidad_bidones, precio_bidon, total }) {
+        const sql = `
+            INSERT INTO cuentas (cliente_id, estado_pago, cantidad_bidones, precio_bidon, total)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+        const [result] = await pool.query(sql, [
+            cliente_id,
+            estado_pago,
+            cantidad_bidones,
+            precio_bidon,
+            total
+        ]);
+        return result;
+    }
 
     async actualizarDatosBasicos(id, { nombre, direccion, telefono }) {
         const sql = "UPDATE clientes SET nombre = ?, direccion = ?, telefono = ? WHERE id = ?";
@@ -187,7 +191,6 @@ class ClienteModel {
         return result;
     }
 
-    // ***** MÉTODO MODIFICADO: ahora recibe montoPagado (decimal) *****
     async registrarPagoParcial(idCuenta, montoPagado) {
         const cuenta = await this.obtenerCuentaPorId(idCuenta);
         if (!cuenta) throw new Error('Cuenta no encontrada');
@@ -199,23 +202,19 @@ class ClienteModel {
         if (montoPagado <= 0) throw new Error('Monto pagado inválido');
         if (montoPagado > totalActual) throw new Error('El monto pagado no puede superar el total de la cuenta');
 
-        // Si el monto pagado cubre todo el total (con tolerancia por decimales)
         if (Math.abs(montoPagado - totalActual) < 0.01) {
             const sqlUpdate = `UPDATE cuentas SET estado_pago = 1, total = ? WHERE id = ?`;
             const [result] = await pool.query(sqlUpdate, [totalActual, idCuenta]);
             return result;
         } else {
-            // Calcular la cantidad de bidones que corresponden al monto pagado
-            const cantidadPagada = montoPagado / precio; // puede ser decimal
+            const cantidadPagada = montoPagado / precio;
             const restante = cantidadActual - cantidadPagada;
             const totalRestante = restante * precio;
             const totalPagado = montoPagado;
 
-            // Actualizar la cuenta original con el resto
             const sqlUpdateOriginal = `UPDATE cuentas SET cantidad_bidones = ?, total = ? WHERE id = ?`;
             await pool.query(sqlUpdateOriginal, [restante, totalRestante, idCuenta]);
 
-            // Insertar una nueva cuenta con lo pagado (estado = pagado)
             const sqlInsertPago = `
                 INSERT INTO cuentas (cliente_id, estado_pago, cantidad_bidones, precio_bidon, total)
                 VALUES (?, 1, ?, ?, ?)
@@ -235,6 +234,59 @@ class ClienteModel {
         const query = "DELETE FROM clientes WHERE id = ?";
         const [result] = await pool.query(query, [clienteId]);
         return result;
+    }
+
+    // ----- NUEVOS MÉTODOS PARA ESTADOS SEMANALES -----
+    async obtenerEstadoSemanal(clienteId, semana) {
+        const sql = `SELECT * FROM clientes_estados_semanales WHERE cliente_id = ? AND semana = ?`;
+        const [rows] = await pool.query(sql, [clienteId, semana]);
+        return rows[0];
+    }
+
+    async obtenerEstadosSemanalesPorCliente(clienteId) {
+        const sql = `SELECT id, semana, estado FROM clientes_estados_semanales WHERE cliente_id = ? ORDER BY semana DESC`;
+        const [rows] = await pool.query(sql, [clienteId]);
+        return rows;
+    }
+
+    async guardarEstadoSemanal(clienteId, semana, estado) {
+        const sql = `
+            INSERT INTO clientes_estados_semanales (cliente_id, semana, estado)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE estado = VALUES(estado)
+        `;
+        const [result] = await pool.query(sql, [clienteId, semana, estado]);
+        return result;
+    }
+
+    async eliminarEstadoSemanal(id) {
+        const sql = `DELETE FROM clientes_estados_semanales WHERE id = ?`;
+        const [result] = await pool.query(sql, [id]);
+        return result;
+    }
+
+    async obtenerEstadosSemanalesPorUsuarioYSemana(usuarioId, semana) {
+        const sql = `
+            SELECT ces.cliente_id, ces.estado
+            FROM clientes_estados_semanales ces
+            JOIN clientes c ON ces.cliente_id = c.id
+            WHERE c.usuario_id = ? AND ces.semana = ?
+        `;
+        const [rows] = await pool.query(sql, [usuarioId, semana]);
+        const map = {};
+        rows.forEach(row => map[row.cliente_id] = row.estado);
+        return map;
+    }
+
+    // ----- NUEVO MÉTODO PARA TOTAL FIADO POR DÍA -----
+    async obtenerTotalFiadoPorClienteYFecha(clienteId, fecha) {
+        const sql = `
+            SELECT IFNULL(SUM(total), 0) as total_fiado
+            FROM cuentas
+            WHERE cliente_id = ? AND DATE(fecha_publicacion) = ? AND estado_pago = 0
+        `;
+        const [rows] = await pool.query(sql, [clienteId, fecha]);
+        return rows[0].total_fiado;
     }
 }
 

@@ -2,6 +2,7 @@ const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
 const UsuarioModel = require("../models/usuarios");
 const usuarioModel = new UsuarioModel();
+const pool = require("../database/db"); // Necesario para eliminarEstadoSemanal
 
 class ClienteController {
     
@@ -94,11 +95,20 @@ class ClienteController {
     async guardarCliente(req, res) {  
         if (!req.session.usuario) return res.redirect("/login");
         const usuarioId = req.session.usuario.id;
-        const { nombre, direccion, telefono } = req.body;
+        const { nombre, direccion, telefono, dia_reparto } = req.body;
+
+        // Validación para usuarios gabriel
+        if (req.session.usuario.rol === 'gabriel' && !dia_reparto) {
+            return res.status(400).send("El día de reparto es obligatorio para usuarios gabriel.");
+        }
 
         try {  
             await clienteModel.guardarCliente({  
-                nombre, direccion, telefono, usuario_id: usuarioId,
+                nombre, 
+                direccion, 
+                telefono, 
+                usuario_id: usuarioId,
+                dia_reparto: dia_reparto || null
             });  
             res.redirect("/home");  
         } catch (error) {  
@@ -148,11 +158,10 @@ class ClienteController {
         }
     }
 
-    // ***** MÉTODO MODIFICADO: ahora recibe monto_pagado *****
     async registrarPagoParcial(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { idCliente, idCuenta } = req.params;
-        const monto_pagado = parseFloat(req.body.monto_pagado); // cambio aquí
+        const monto_pagado = parseFloat(req.body.monto_pagado);
         const usuarioId = req.session.usuario.id;
 
         if (!monto_pagado || monto_pagado <= 0) {
@@ -165,7 +174,7 @@ class ClienteController {
             const cliente = await clienteModel.obtenerClientePorId(cuenta.cliente_id, usuarioId);
             if (!cliente) return res.status(403).send("No tiene permiso para modificar esta cuenta.");
 
-            await clienteModel.registrarPagoParcial(idCuenta, monto_pagado); // pasar monto
+            await clienteModel.registrarPagoParcial(idCuenta, monto_pagado);
             res.redirect(`/clientes/${idCliente}`);
         } catch (error) {
             console.error('Error al registrar pago parcial:', error);
@@ -176,11 +185,12 @@ class ClienteController {
     async agregarCuenta(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
-        const { estado_pago, cantidad_bidones } = req.body;
+        const { estado_pago, cantidad_bidones, monto } = req.body;
         const usuarioId = req.session.usuario.id;
+        const usuarioRol = req.session.usuario.rol;
 
-        if (!estado_pago || !cantidad_bidones) {
-            return res.status(400).send("Todos los campos son obligatorios.");
+        if (!estado_pago) {
+            return res.status(400).send("El estado de pago es obligatorio.");
         }
 
         try {
@@ -189,15 +199,58 @@ class ClienteController {
                 return res.status(404).send("Cliente no encontrado o no tiene permiso.");
             }
 
-            // Obtener el precio del usuario actual
-            const precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId);
-
-            await clienteModel.agregarCuenta({
-                cliente_id: id,
-                estado_pago,
-                cantidad_bidones,
-                precio_bidon
-            });
+            if (usuarioRol === 'gabriel') {
+                // Gabriel puede usar cantidad o monto
+                if (monto && monto.trim() !== '') {
+                    // Modo monto
+                    const montoVal = parseFloat(monto);
+                    if (isNaN(montoVal) || montoVal <= 0) {
+                        return res.status(400).send("Monto inválido.");
+                    }
+                    await clienteModel.agregarCuenta({
+                        cliente_id: id,
+                        estado_pago,
+                        cantidad_bidones: montoVal,
+                        precio_bidon: 1,
+                        total: montoVal
+                    });
+                } else if (cantidad_bidones && cantidad_bidones.trim() !== '') {
+                    // Modo cantidad
+                    const cant = parseFloat(cantidad_bidones);
+                    if (isNaN(cant) || cant <= 0) {
+                        return res.status(400).send("Cantidad inválida.");
+                    }
+                    const precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId);
+                    const total = cant * precio_bidon;
+                    await clienteModel.agregarCuenta({
+                        cliente_id: id,
+                        estado_pago,
+                        cantidad_bidones: cant,
+                        precio_bidon,
+                        total
+                    });
+                } else {
+                    return res.status(400).send("Debe ingresar un monto o una cantidad.");
+                }
+            } else {
+                // Usuario normal: solo cantidad
+                if (!cantidad_bidones) {
+                    return res.status(400).send("La cantidad de bidones es obligatoria.");
+                }
+                const cant = parseFloat(cantidad_bidones);
+                if (isNaN(cant) || cant <= 0) {
+                    return res.status(400).send("Cantidad inválida.");
+                }
+                const precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId);
+                const total = cant * precio_bidon;
+                await clienteModel.agregarCuenta({
+                    cliente_id: id,
+                    estado_pago,
+                    cantidad_bidones: cant,
+                    precio_bidon,
+                    total
+                });
+            }
             res.redirect(`/clientes/${id}`);
         } catch (error) {
             console.error("Error al agregar cuenta:", error);
@@ -205,11 +258,14 @@ class ClienteController {
         }
     }
 
-    async obtenerClientePorId(req, res) {
+   async obtenerClientePorId(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
         const pagina = parseInt(req.query.pagina) || 1;
+        // CAMBIO: Capturamos el parámetro dia de la query (para volver al mismo día)
+        const dia = req.query.dia || null;
         const usuarioId = req.session.usuario.id;
+        const usuarioRol = req.session.usuario.rol;
 
         try {
             const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
@@ -218,8 +274,35 @@ class ClienteController {
             }
 
             const cuentasData = await clienteModel.obtenerCuentasPorCliente(id, pagina);
-            // Obtener el precio del usuario actual
             const precioActual = await usuarioModel.obtenerPrecioUsuario(usuarioId);
+            
+            // Obtener historial semanal solo si es gabriel, para ahorrar consulta
+            let historialSemanal = [];
+            if (usuarioRol === 'gabriel') {
+                historialSemanal = await clienteModel.obtenerEstadosSemanalesPorCliente(id);
+            }
+
+            // Formatear fechas del historial semanal (solo el día de la semana y fecha)
+            const historialFormateado = historialSemanal.map(item => {
+                let fechaStr = '';
+                try {
+                    const fecha = new Date(item.semana);
+                    if (!isNaN(fecha.getTime())) {
+                        const opciones = { weekday: 'long', day: '2-digit', month: '2-digit' };
+                        fechaStr = fecha.toLocaleDateString('es-AR', opciones);
+                        fechaStr = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
+                    } else {
+                        fechaStr = 'Fecha inválida';
+                    }
+                } catch (e) {
+                    fechaStr = 'Fecha inválida';
+                }
+                return {
+                    id: item.id,
+                    estado: item.estado,
+                    semanaFormateada: fechaStr
+                };
+            });
 
             res.render("detalleCliente", { 
                 cliente, 
@@ -227,7 +310,11 @@ class ClienteController {
                 paginaActual: cuentasData.paginaActual,
                 totalCuentas: cuentasData.totalCuentas,
                 totalPaginas: cuentasData.totalPaginas,
-                precioActual 
+                precioActual,
+                historialSemanal: historialFormateado,
+                usuarioRol,          // Pasamos el rol para la vista
+                usuarioId,
+                dia                  // CAMBIO: pasamos el día a la vista
             });
         } catch (error) {
             console.error("Error al obtener cliente:", error);
@@ -278,6 +365,65 @@ class ClienteController {
             res.json({ success: true });
         } catch (error) {
             console.error("Error al actualizar datos básicos del cliente:", error);
+            res.status(500).json({ error: "Error del servidor" });
+        }
+    }
+
+    // ----- MÉTODOS PARA ESTADOS SEMANALES (solo accesibles por rol 'gabriel') -----
+    async guardarEstadoSemanal(req, res) {
+        if (!req.session.usuario) return res.redirect("/login");
+        // Verificar rol
+        if (req.session.usuario.rol !== 'gabriel') {
+            return res.status(403).json({ error: "No autorizado" });
+        }
+        const { id } = req.params; // cliente id
+        const { estado } = req.body; // 'compro', 'no_compro', 'no_estaba'
+        const usuarioId = req.session.usuario.id;
+
+        if (!estado) return res.status(400).json({ error: "Estado requerido" });
+
+        try {
+            const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
+            if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
+
+            // Calcular el lunes de la semana actual
+            const fechaHoy = new Date();
+            const diaSemana = fechaHoy.getDay(); // 0 domingo, 1 lunes...
+            const diff = diaSemana === 0 ? 6 : diaSemana - 1;
+            const monday = new Date(fechaHoy);
+            monday.setDate(fechaHoy.getDate() - diff);
+            const semanaStr = monday.toISOString().split('T')[0];
+
+            await clienteModel.guardarEstadoSemanal(id, semanaStr, estado);
+            res.json({ success: true, estado });
+        } catch (error) {
+            console.error("Error al guardar estado semanal:", error);
+            res.status(500).json({ error: "Error del servidor" });
+        }
+    }
+
+    async eliminarEstadoSemanal(req, res) {
+        if (!req.session.usuario) return res.redirect("/login");
+        if (req.session.usuario.rol !== 'gabriel') {
+            return res.status(403).json({ error: "No autorizado" });
+        }
+        const { id } = req.params; // id del registro en clientes_estados_semanales
+        const usuarioId = req.session.usuario.id;
+
+        try {
+            // Verificar que el registro pertenezca a un cliente de este usuario
+            const sql = `
+                SELECT ces.* FROM clientes_estados_semanales ces
+                JOIN clientes c ON ces.cliente_id = c.id
+                WHERE ces.id = ? AND c.usuario_id = ?
+            `;
+            const [rows] = await pool.query(sql, [id, usuarioId]);
+            if (rows.length === 0) return res.status(404).json({ error: "No encontrado o sin permiso" });
+
+            await clienteModel.eliminarEstadoSemanal(id);
+            res.json({ success: true });
+        } catch (error) {
+            console.error("Error al eliminar estado semanal:", error);
             res.status(500).json({ error: "Error del servidor" });
         }
     }

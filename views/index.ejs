@@ -149,6 +149,64 @@
         .menu-options button:first-child {
             border-bottom: 1px solid #eee;
         }
+
+        /* Estilos para el paginador de días */
+        .pagination-dias {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 30px 0 20px;
+        }
+        .pagination-dias a {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            color: #333;
+            text-decoration: none;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: 1px solid #ddd;
+        }
+        .pagination-dias a.active {
+            background: rgb(0, 0, 128);
+            color: white;
+            border-color: rgb(0, 0, 128);
+        }
+        .pagination-dias a:hover:not(.active) {
+            background: #e0e0e0;
+        }
+
+        /* Nuevos estilos para bordes de estado */
+        .cliente-card.border-green {
+            border: 2px solid green;
+        }
+        .cliente-card.border-red {
+            border: 2px solid red;
+        }
+        .cliente-card.border-gray {
+            border: 2px solid gray;
+        }
+
+        /* Estilos para los íconos de estado semanal */
+        .estado-semanal-icons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .estado-icon {
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .estado-icon.active {
+            opacity: 1;
+        }
+        .estado-icon[data-estado="compro"] { color: green; }
+        .estado-icon[data-estado="no_compro"] { color: red; }
+        .estado-icon[data-estado="no_estaba"] { color: gray; }
     </style>
 </head>
 <body>
@@ -171,7 +229,6 @@
                                 <a href="/configuracion" class="admin-link">configuración</a>
             <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>            
                 <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
-
             <% } %>                                                                                            
         </nav>                                                                                                                                                                      
         <div class="registroinicio">
@@ -205,8 +262,16 @@
     
             <% if (clientes && clientes.length) { %>
                 <div class="clientes-container">
-                    <% clientes.forEach(cliente => { %>
-                        <div class="cliente-card" data-id="<%= cliente.id %>" data-nombre="<%= cliente.nombre %>" data-direccion="<%= cliente.direccion %>" data-telefono="<%= cliente.telefono %>" id="cliente-<%= cliente.id %>">
+                    <% clientes.forEach(cliente => { 
+                        // Determinar clase de borde según estado semanal actual
+                        let borderClass = '';
+                        if (usuarioRol === 'gabriel' && estadosSemanales && estadosSemanales[cliente.id]) {
+                            if (estadosSemanales[cliente.id] === 'compro') borderClass = 'border-green';
+                            else if (estadosSemanales[cliente.id] === 'no_compro') borderClass = 'border-red';
+                            else if (estadosSemanales[cliente.id] === 'no_estaba') borderClass = 'border-gray';
+                        }
+                    %>
+                        <div class="cliente-card <%= borderClass %>" data-id="<%= cliente.id %>" data-nombre="<%= cliente.nombre %>" data-direccion="<%= cliente.direccion %>" data-telefono="<%= cliente.telefono %>" id="cliente-<%= cliente.id %>">
                             <p>
                                 <i class="fas fa-user"></i>  <%= cliente.nombre %>
                             </p>
@@ -227,7 +292,8 @@
                                 </a>
                             </p>                                                       
     
-                            <a href="/clientes/<%= cliente.id %>" class="ver-detalle">Ver detalles</a>
+                            <!-- CAMBIO: Añadimos ?dia=... para usuario gabriel -->
+                            <a href="/clientes/<%= cliente.id %><%= usuarioRol === 'gabriel' ? '?dia=' + diaSeleccionado : '' %>" class="ver-detalle">Ver detalles</a>
                             
                             <!-- Botón de tres puntos y menú flotante -->
                             <button class="menu-cliente" onclick="toggleMenu(this)">&#x22EE;</button>
@@ -237,32 +303,69 @@
                             </div>
 
                             <%
-                                // Formateo de bidones adeudados sin decimales innecesarios
                                 let bidonesVal = Number(cliente.bidones_adeudados);
                                 let bidonesMostrar = bidonesVal % 1 === 0 
                                     ? bidonesVal.toString() 
                                     : bidonesVal.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
                             %>
                             <p>Bidones adeudados: <%= bidonesMostrar %></p>
+                            
+                            <!-- Mostrar total fiado del día SOLO para usuario gabriel -->
+                            <% if (usuarioRol === 'gabriel' && cliente.totalFiadoHoy !== undefined) { 
+                                let totalFiado = Number(cliente.totalFiadoHoy);
+                                let totalMostrar = totalFiado % 1 === 0 
+                                    ? totalFiado.toString() 
+                                    : totalFiado.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                            %>
+                                <p class="total-fiado-dia">
+                                    <i class="fas fa-clock" style="color: #f39c12;"></i> 
+                                    Fiado hoy: <strong>$<%= totalMostrar %></strong>
+                                </p>
+                            <% } %>
+
+                            <!-- Íconos de estado semanal - Solo visible para gabriel -->
+                            <% if (usuarioRol === 'gabriel') { %>
+                            <div class="estado-semanal-icons">
+                                <i class="fas fa-check-circle estado-icon <%= estadosSemanales && estadosSemanales[cliente.id] === 'compro' ? 'active' : '' %>" data-estado="compro" title="Compró"></i>
+                                <i class="fas fa-times-circle estado-icon <%= estadosSemanales && estadosSemanales[cliente.id] === 'no_compro' ? 'active' : '' %>" data-estado="no_compro" title="No compró"></i>
+                                <i class="fas fa-ban estado-icon <%= estadosSemanales && estadosSemanales[cliente.id] === 'no_estaba' ? 'active' : '' %>" data-estado="no_estaba" title="No estaba"></i>
+                            </div>
+                            <% } %>
                         </div>
                     <% }); %>
                 </div>
-                                             
-                <div class="pagination">
-                    <% if (page > 1) { %>
-                        <a href="/home?page=<%= page - 1 %>&filtro=<%= filtro %>" class="pagination-arrow"><</a>
-                    <% } %>
-                    <% for (let i = 1; i <= totalPaginas; i++) { %>                                                                        
-                        <a href="/home?page=<%= i %>&filtro=<%= filtro %>" class="<%= i == page ? 'active' : '' %>"><%= i %></a>
-                    <% } %>
-                    <% if (page < totalPaginas) { %>
-                        <a href="/home?page=<%= page + 1 %>&filtro=<%= filtro %>" class="pagination-arrow">></a>
-                    <% } %>
-                </div>
-
             <% } else { %>
-                <p class="no-clientes">No hay clientes registrados.</p>
+                <p class="no-clientes">No hay clientes registrados para este filtro.</p>
             <% } %>
+
+            <!-- Paginador de días (para usuario gabriel) - SIEMPRE visible -->
+            <% if (usuarioRol === 'gabriel') { %>
+                <div class="pagination-dias">
+                    <% const dias = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']; %>
+                    <% dias.forEach(d => { %>
+                        <a href="/home?dia=<%= d %>&filtro=<%= filtro || '' %>" 
+                           class="<%= d === diaSeleccionado ? 'active' : '' %>">
+                            <%= d.charAt(0).toUpperCase() + d.slice(1) %>
+                        </a>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <!-- Paginador numérico (para otros roles) - solo si hay páginas -->
+                <% if (totalPaginas > 0) { %>
+                    <div class="pagination">
+                        <% if (page > 1) { %>
+                            <a href="/home?page=<%= page - 1 %>&filtro=<%= filtro %>" class="pagination-arrow"><</a>
+                        <% } %>
+                        <% for (let i = 1; i <= totalPaginas; i++) { %>                                                                        
+                            <a href="/home?page=<%= i %>&filtro=<%= filtro %>" class="<%= i == page ? 'active' : '' %>"><%= i %></a>
+                        <% } %>
+                        <% if (page < totalPaginas) { %>
+                            <a href="/home?page=<%= page + 1 %>&filtro=<%= filtro %>" class="pagination-arrow">></a>
+                        <% } %>
+                    </div>
+                <% } %>
+            <% } %>
+
         <% } else { %>
             <p class="no-sesion">Debes iniciar sesión para ver la lista de clientes.</p>
         <% } %>
@@ -276,7 +379,7 @@
         </div>
     <% } %>
 
-    <!-- Modal para editar cliente (con estilos mejorados) -->
+    <!-- Modal para editar cliente -->
     <div id="modal-editar" class="modal-editar" style="display: none;">
         <h3>Editar Cliente</h3>
         <input type="hidden" id="edit-id">
@@ -309,18 +412,14 @@
             }
         });
 
-        // Función para mostrar/ocultar el menú de opciones
         function toggleMenu(button) {
             const menu = button.nextElementSibling;
-            // Cerrar otros menús abiertos
             document.querySelectorAll('.menu-options').forEach(m => {
                 if (m !== menu) m.style.display = 'none';
             });
-            // Alternar el menú actual
             menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
         }
 
-        // Función para abrir el modal de edición con los datos actuales
         function editarCliente(id) {
             const card = document.querySelector(`.cliente-card[data-id="${id}"]`);
             const nombre = card.dataset.nombre;
@@ -335,7 +434,6 @@
             document.getElementById('modal-editar').style.display = 'block';
             document.getElementById('modal-overlay').style.display = 'block';
             
-            // Cerrar el menú después de abrir el modal
             const menu = card.querySelector('.menu-options');
             if (menu) menu.style.display = 'none';
         }
@@ -345,7 +443,6 @@
             document.getElementById('modal-overlay').style.display = 'none';
         }
 
-        // Función para guardar los cambios vía fetch
         function guardarEdicion() {
             const id = document.getElementById('edit-id').value;
             const nombre = document.getElementById('edit-nombre').value.trim();
@@ -365,13 +462,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Actualizar los datos en la tarjeta sin recargar la página (opcional)
                     const card = document.querySelector(`.cliente-card[data-id="${id}"]`);
                     if (card) {
                         card.dataset.nombre = nombre;
                         card.dataset.direccion = direccion;
                         card.dataset.telefono = telefono;
-                        // Actualizar el contenido visible
                         const nombreP = card.querySelector('p:first-child');
                         if (nombreP) nombreP.innerHTML = `<i class="fas fa-user"></i> ${nombre}`;
                         const direccionA = card.querySelector('.direccion a');
@@ -406,7 +501,6 @@
             }
         }
 
-        // Cerrar el menú si se hace clic fuera de él
         document.addEventListener('click', function(event) {
             if (!event.target.classList.contains('menu-cliente') && !event.target.closest('.menu-options')) {
                 document.querySelectorAll('.menu-options').forEach(menu => {
@@ -415,7 +509,6 @@
             }
         });
 
-        // ---------- Lógica para el badge del chat ----------
         <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
             const socket = io();
             const usuarioId = <%= usuarioId %>;
@@ -440,6 +533,44 @@
             socket.on('update-unread', actualizarBadgeHeader);
             document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
         <% } %>
+
+        // Nuevo: Manejo de clic en íconos de estado semanal (solo se ejecuta si existen)
+        document.querySelectorAll('.estado-icon').forEach(icon => {
+            icon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const card = this.closest('.cliente-card');
+                const clienteId = card.dataset.id;
+                const estado = this.dataset.estado;
+
+                fetch(`/clientes/${clienteId}/estado-semanal`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estado })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Actualizar borde
+                        card.classList.remove('border-green', 'border-red', 'border-gray');
+                        if (estado === 'compro') card.classList.add('border-green');
+                        else if (estado === 'no_compro') card.classList.add('border-red');
+                        else if (estado === 'no_estaba') card.classList.add('border-gray');
+
+                        // Actualizar clase active en íconos
+                        card.querySelectorAll('.estado-icon').forEach(ic => {
+                            ic.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                    } else {
+                        alert('Error al guardar estado');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error');
+                });
+            });
+        });
     </script>
 </body>
 </html>
