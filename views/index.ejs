@@ -352,11 +352,10 @@
                             <p>Bidones adeudados: <%= bidonesMostrar %></p>
                             
                             <!-- Mostrar total fiado del día SOLO para usuario gabriel -->
-                            <% if (usuarioRol === 'gabriel' && cliente.totalFiadoHoy !== undefined) { 
-                                let totalFiado = Number(cliente.totalFiadoHoy);
-                                let totalMostrar = totalFiado % 1 === 0 
-                                    ? totalFiado.toString() 
-                                    : totalFiado.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                            <% if (usuarioRol === 'gabriel') { 
+                                // CAMBIO: Aseguramos que totalFiadoHoy sea un número y lo formateamos siempre con 2 decimales
+                                let totalFiado = Number(cliente.totalFiadoHoy) || 0;
+                                let totalMostrar = totalFiado.toFixed(2).replace('.', ',');
                             %>
                                 <p class="total-fiado-dia">
                                     <i class="fas fa-clock" style="color: #f39c12;"></i> 
