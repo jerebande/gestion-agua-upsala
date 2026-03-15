@@ -25,6 +25,7 @@ class ClienteController {
         }
     }
     
+    // 📌 MODIFICADO: calcula totales a partir de las cuentas obtenidas
     async listarCuentasPorFecha(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
 
@@ -36,10 +37,15 @@ class ClienteController {
             const nombreUsuario = req.session.usuario.nombre;
             const cuentas = await clienteModel.obtenerCuentasPorFecha(fecha, usuarioId);
 
-            const totalGeneral = cuentas.length > 0 ? parseFloat(cuentas[0].total_general) || 0 : 0;
-            const totalPagados = cuentas.length > 0 ? parseFloat(cuentas[0].total_pagados) || 0 : 0;
-            const totalFiados = cuentas.length > 0 ? parseFloat(cuentas[0].total_fiados) || 0 : 0;
-            const totalTransferencias = cuentas.length > 0 ? parseFloat(cuentas[0].total_transferencias) || 0 : 0;
+            // Calcular totales a partir de las cuentas (filtradas por usuario)
+            let totalGeneral = 0, totalPagados = 0, totalFiados = 0, totalTransferencias = 0;
+            cuentas.forEach(c => {
+                const total = parseFloat(c.total) || 0;
+                totalGeneral += total;
+                if (c.estado_pago == 1) totalPagados += total;
+                else if (c.estado_pago == 0) totalFiados += total;
+                else if (c.estado_pago == 2) totalTransferencias += total;
+            });
 
             const periodo7dias = await clienteModel.obtenerCuentasPorPeriodo('7dias', usuarioId);
             const periodo1mes = await clienteModel.obtenerCuentasPorPeriodo('1mes', usuarioId);
@@ -97,7 +103,6 @@ class ClienteController {
         const usuarioId = req.session.usuario.id;
         const { nombre, direccion, telefono, dia_reparto } = req.body;
 
-        // Validación para usuarios gabriel
         if (req.session.usuario.rol === 'gabriel' && !dia_reparto) {
             return res.status(400).send("El día de reparto es obligatorio para usuarios gabriel.");
         }
@@ -200,9 +205,7 @@ class ClienteController {
             }
 
             if (usuarioRol === 'gabriel') {
-                // Gabriel puede usar cantidad o monto
                 if (monto && monto.trim() !== '') {
-                    // Modo monto
                     const montoVal = parseFloat(monto);
                     if (isNaN(montoVal) || montoVal <= 0) {
                         return res.status(400).send("Monto inválido.");
@@ -215,7 +218,6 @@ class ClienteController {
                         total: montoVal
                     });
                 } else if (cantidad_bidones && cantidad_bidones.trim() !== '') {
-                    // Modo cantidad
                     const cant = parseFloat(cantidad_bidones);
                     if (isNaN(cant) || cant <= 0) {
                         return res.status(400).send("Cantidad inválida.");
@@ -233,7 +235,6 @@ class ClienteController {
                     return res.status(400).send("Debe ingresar un monto o una cantidad.");
                 }
             } else {
-                // Usuario normal: solo cantidad
                 if (!cantidad_bidones) {
                     return res.status(400).send("La cantidad de bidones es obligatoria.");
                 }
@@ -262,7 +263,6 @@ class ClienteController {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
         const pagina = parseInt(req.query.pagina) || 1;
-        // CAMBIO: Capturamos el parámetro dia de la query (para volver al mismo día)
         const dia = req.query.dia || null;
         const usuarioId = req.session.usuario.id;
         const usuarioRol = req.session.usuario.rol;
@@ -276,13 +276,11 @@ class ClienteController {
             const cuentasData = await clienteModel.obtenerCuentasPorCliente(id, pagina);
             const precioActual = await usuarioModel.obtenerPrecioUsuario(usuarioId);
             
-            // Obtener historial semanal solo si es gabriel, para ahorrar consulta
             let historialSemanal = [];
             if (usuarioRol === 'gabriel') {
                 historialSemanal = await clienteModel.obtenerEstadosSemanalesPorCliente(id);
             }
 
-            // Formatear fechas del historial semanal (solo el día de la semana y fecha)
             const historialFormateado = historialSemanal.map(item => {
                 let fechaStr = '';
                 try {
@@ -312,9 +310,9 @@ class ClienteController {
                 totalPaginas: cuentasData.totalPaginas,
                 precioActual,
                 historialSemanal: historialFormateado,
-                usuarioRol,          // Pasamos el rol para la vista
+                usuarioRol,
                 usuarioId,
-                dia                  // CAMBIO: pasamos el día a la vista
+                dia
             });
         } catch (error) {
             console.error("Error al obtener cliente:", error);
@@ -372,12 +370,11 @@ class ClienteController {
     // ----- MÉTODOS PARA ESTADOS SEMANALES (solo accesibles por rol 'gabriel') -----
     async guardarEstadoSemanal(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
-        // Verificar rol
         if (req.session.usuario.rol !== 'gabriel') {
             return res.status(403).json({ error: "No autorizado" });
         }
-        const { id } = req.params; // cliente id
-        const { estado } = req.body; // 'compro', 'no_compro', 'no_estaba'
+        const { id } = req.params;
+        const { estado } = req.body;
         const usuarioId = req.session.usuario.id;
 
         if (!estado) return res.status(400).json({ error: "Estado requerido" });
@@ -386,9 +383,8 @@ class ClienteController {
             const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
             if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
 
-            // Calcular el lunes de la semana actual
             const fechaHoy = new Date();
-            const diaSemana = fechaHoy.getDay(); // 0 domingo, 1 lunes...
+            const diaSemana = fechaHoy.getDay();
             const diff = diaSemana === 0 ? 6 : diaSemana - 1;
             const monday = new Date(fechaHoy);
             monday.setDate(fechaHoy.getDate() - diff);
@@ -407,11 +403,10 @@ class ClienteController {
         if (req.session.usuario.rol !== 'gabriel') {
             return res.status(403).json({ error: "No autorizado" });
         }
-        const { id } = req.params; // id del registro en clientes_estados_semanales
+        const { id } = req.params;
         const usuarioId = req.session.usuario.id;
 
         try {
-            // Verificar que el registro pertenezca a un cliente de este usuario
             const sql = `
                 SELECT ces.* FROM clientes_estados_semanales ces
                 JOIN clientes c ON ces.cliente_id = c.id

@@ -31,21 +31,19 @@ class ClienteModel {
         return rows;
     }
 
+    // 📌 MODIFICADO: usa rango de fechas y devuelve solo las cuentas (sin subconsultas de totales)
     async obtenerCuentasPorFecha(fecha, usuarioId) {
         const sql = `
             SELECT 
                 c.id, c.estado_pago, c.cantidad_bidones, c.precio_bidon, 
-                c.total, c.fecha_publicacion, cl.nombre AS cliente_nombre,
-                (SELECT SUM(total) FROM cuentas WHERE DATE(fecha_publicacion) = ?) AS total_general,
-                (SELECT SUM(total) FROM cuentas WHERE DATE(fecha_publicacion) = ? AND estado_pago = 1) AS total_pagados,
-                (SELECT SUM(total) FROM cuentas WHERE DATE(fecha_publicacion) = ? AND estado_pago = 0) AS total_fiados,
-                (SELECT SUM(total) FROM cuentas WHERE DATE(fecha_publicacion) = ? AND estado_pago = 2) AS total_transferencias
+                c.total, c.fecha_publicacion, cl.nombre AS cliente_nombre
             FROM cuentas c
             JOIN clientes cl ON c.cliente_id = cl.id
-            WHERE DATE(c.fecha_publicacion) = ? AND cl.usuario_id = ?
+            WHERE c.fecha_publicacion >= ? AND c.fecha_publicacion < DATE_ADD(?, INTERVAL 1 DAY)
+              AND cl.usuario_id = ?
             ORDER BY c.fecha_publicacion DESC;
         `;
-        const [rows] = await pool.query(sql, [fecha, fecha, fecha, fecha, fecha, usuarioId]);
+        const [rows] = await pool.query(sql, [fecha, fecha, usuarioId]);
         return rows;
     }
 
@@ -236,7 +234,7 @@ class ClienteModel {
         return result;
     }
 
-    // ----- NUEVOS MÉTODOS PARA ESTADOS SEMANALES -----
+    // ----- MÉTODOS PARA ESTADOS SEMANALES -----
     async obtenerEstadoSemanal(clienteId, semana) {
         const sql = `SELECT * FROM clientes_estados_semanales WHERE cliente_id = ? AND semana = ?`;
         const [rows] = await pool.query(sql, [clienteId, semana]);
@@ -278,7 +276,6 @@ class ClienteModel {
         return map;
     }
 
-    // ----- NUEVO MÉTODO PARA TOTAL FIADO POR DÍA -----
     async obtenerTotalFiadoPorClienteYFecha(clienteId, fecha) {
         const sql = `
             SELECT IFNULL(SUM(total), 0) as total_fiado
