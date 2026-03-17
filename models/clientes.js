@@ -285,6 +285,17 @@ class ClienteModel {
         return rows[0].total_fiado;
     }
 
+    // ----- NUEVO MÉTODO: Obtener total fiado general -----
+    async obtenerTotalFiadoGeneral(clienteId) {
+        const sql = `
+            SELECT IFNULL(SUM(total), 0) as total_fiado
+            FROM cuentas
+            WHERE cliente_id = ? AND estado_pago = 0
+        `;
+        const [rows] = await pool.query(sql, [clienteId]);
+        return rows[0].total_fiado;
+    }
+
     // ----- NUEVOS MÉTODOS PARA ENTREGAS DIARIAS -----
     async marcarEntregaHoy(clienteId) {
         const fecha = new Date().toISOString().split('T')[0];

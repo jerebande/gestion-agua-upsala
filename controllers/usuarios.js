@@ -25,86 +25,88 @@ class UsuarioController {
     }
 
     async home(req, res) {
-    if (!req.session.usuario) return res.redirect("/login");
+        if (!req.session.usuario) return res.redirect("/login");
 
-    const { filtro, page = 1, dia } = req.query;
-    const { id: usuarioId, rol } = req.session.usuario;
-    const clientesPorPagina = 5;
+        const { filtro, page = 1, dia } = req.query;
+        const { id: usuarioId, rol } = req.session.usuario;
+        const clientesPorPagina = 5;
 
-    try {
-        let todosLosClientes;
-        let diaSeleccionado = null;
+        try {
+            let todosLosClientes;
+            let diaSeleccionado = null;
 
-        if (rol === 'gabriel') {
-            diaSeleccionado = dia || 'lunes';
-            todosLosClientes = await clienteModel.obtenerClientesFiltrados(usuarioId, filtro, diaSeleccionado);
+            if (rol === 'gabriel') {
+                diaSeleccionado = dia || 'lunes';
+                todosLosClientes = await clienteModel.obtenerClientesFiltrados(usuarioId, filtro, diaSeleccionado);
+                const fechaHoy = new Date().toISOString().split('T')[0];
+                for (let cliente of todosLosClientes) {
+                    cliente.totalFiadoHoy = await clienteModel.obtenerTotalFiadoPorClienteYFecha(cliente.id, fechaHoy);
+                    // Solo para gabriel se calcula el total general de fiado
+                    cliente.totalFiadoGeneral = await clienteModel.obtenerTotalFiadoGeneral(cliente.id);
+                }
+            } else {
+                // Para otros roles no se necesita el total general de fiado
+                todosLosClientes = filtro 
+                    ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
+                    : await clienteModel.obtenerClientesPorUsuario(usuarioId);
+            }
+
+            // Obtener estado semanal actual solo para rol gabriel
+            let estadosSemanales = {};
+            if (rol === 'gabriel') {
+                const fechaHoy = new Date();
+                const diaSemana = fechaHoy.getDay(); // 0 domingo, 1 lunes...
+                const diff = diaSemana === 0 ? 6 : diaSemana - 1;
+                const monday = new Date(fechaHoy);
+                monday.setDate(fechaHoy.getDate() - diff);
+                const semanaStr = monday.toISOString().split('T')[0];
+                estadosSemanales = await clienteModel.obtenerEstadosSemanalesPorUsuarioYSemana(usuarioId, semanaStr);
+            }
+
+            // --- Obtener entregas del día y mapear a TODOS los clientes ---
             const fechaHoy = new Date().toISOString().split('T')[0];
-            for (let cliente of todosLosClientes) {
-                cliente.totalFiadoHoy = await clienteModel.obtenerTotalFiadoPorClienteYFecha(cliente.id, fechaHoy);
+            const entregasHoyIds = await clienteModel.obtenerEntregasHoy(usuarioId, fechaHoy);
+
+            // Mapear propiedad entrega_hoy a cada cliente en todosLosClientes
+            todosLosClientes = todosLosClientes.map(cliente => ({
+                ...cliente,
+                entrega_hoy: entregasHoyIds.includes(cliente.id)
+            }));
+
+            // Ordenar TODOS los clientes: primero los que tienen entrega_hoy = true, luego por nombre
+            todosLosClientes.sort((a, b) => {
+                if (a.entrega_hoy === b.entrega_hoy) {
+                    return (a.nombre || '').localeCompare(b.nombre || '');
+                }
+                return b.entrega_hoy ? 1 : -1;
+            });
+
+            let clientes;
+            let totalPaginas = 1;
+
+            if (rol === 'gabriel') {
+                clientes = todosLosClientes;
+            } else {
+                clientes = todosLosClientes.slice((page - 1) * clientesPorPagina, page * clientesPorPagina);
+                totalPaginas = Math.ceil(todosLosClientes.length / clientesPorPagina);
             }
-        } else {
-            todosLosClientes = filtro 
-                ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
-                : await clienteModel.obtenerClientesPorUsuario(usuarioId);
+
+            res.render("index", { 
+                nombreUsuario: req.session.usuario.nombre,
+                usuarioId,
+                usuarioRol: rol,
+                clientes, 
+                filtro, 
+                page: Number(page), 
+                totalPaginas,
+                diaSeleccionado,
+                estadosSemanales
+            });
+        } catch (error) {
+            console.error("Error en home:", error);
+            res.status(500).send("Error del servidor");
         }
-
-        // Obtener estado semanal actual solo para rol gabriel
-        let estadosSemanales = {};
-        if (rol === 'gabriel') {
-            const fechaHoy = new Date();
-            const diaSemana = fechaHoy.getDay(); // 0 domingo, 1 lunes...
-            const diff = diaSemana === 0 ? 6 : diaSemana - 1;
-            const monday = new Date(fechaHoy);
-            monday.setDate(fechaHoy.getDate() - diff);
-            const semanaStr = monday.toISOString().split('T')[0];
-            estadosSemanales = await clienteModel.obtenerEstadosSemanalesPorUsuarioYSemana(usuarioId, semanaStr);
-        }
-
-        let clientes;
-        let totalPaginas = 1;
-
-        if (rol === 'gabriel') {
-            clientes = todosLosClientes;
-        } else {
-            clientes = todosLosClientes.slice((page - 1) * clientesPorPagina, page * clientesPorPagina);
-            totalPaginas = Math.ceil(todosLosClientes.length / clientesPorPagina);
-        }
-
-        // --- NUEVO: Obtener entregas del día y ordenar ---
-        const fechaHoy = new Date().toISOString().split('T')[0];
-        const entregasHoyIds = await clienteModel.obtenerEntregasHoy(usuarioId, fechaHoy);
-
-        // Mapear propiedad entrega_hoy a cada cliente
-        clientes = clientes.map(cliente => ({
-            ...cliente,
-            entrega_hoy: entregasHoyIds.includes(cliente.id)
-        }));
-
-        // Ordenar: primero los que tienen entrega_hoy = true, luego por nombre
-        clientes.sort((a, b) => {
-            if (a.entrega_hoy === b.entrega_hoy) {
-                return (a.nombre || '').localeCompare(b.nombre || '');
-            }
-            return b.entrega_hoy ? 1 : -1;
-        });
-        // ------------------------------------------------
-
-        res.render("index", { 
-            nombreUsuario: req.session.usuario.nombre,
-            usuarioId,
-            usuarioRol: rol,
-            clientes, 
-            filtro, 
-            page: Number(page), 
-            totalPaginas,
-            diaSeleccionado,
-            estadosSemanales
-        });
-    } catch (error) {
-        console.error("Error en home:", error);
-        res.status(500).send("Error del servidor");
     }
-}
 
     async verInvitaciones(req, res) {
         if (!req.session.usuario) return res.redirect("/login");

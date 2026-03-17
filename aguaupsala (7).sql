@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 17-03-2026 a las 01:39:21
+-- Tiempo de generación: 17-03-2026 a las 06:03:28
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.0.30
 
@@ -51,7 +51,12 @@ INSERT INTO `clientes` (`id`, `nombre`, `direccion`, `telefono`, `usuario_id`, `
 (58, 'juana', 'juana de las juanas', '453434343', 8, 0.00, NULL, 0, 0.00, NULL, NULL),
 (63, 'fernando bandelli', '344', '555', 17, 0.00, NULL, 0, 0.00, NULL, 'domingo'),
 (65, 'griselda', '33', '2222222222', 17, 0.00, NULL, 0, 0.00, NULL, 'lunes'),
-(67, '3rr', '4f4f', '22222', 2, 0.00, NULL, 0, 0.00, NULL, NULL);
+(67, '3rr', '4f4f', '22222', 2, 0.00, NULL, 0, 0.00, NULL, NULL),
+(68, 'fvfv', 'frrf', '43', 2, 0.00, NULL, 0, 0.00, NULL, NULL),
+(69, 'r34r', '44ef', '43', 2, 0.00, NULL, 0, 0.00, NULL, NULL),
+(70, 'effe', 'effe4', '5', 2, 0.00, NULL, 0, 0.00, NULL, NULL),
+(71, 'rffr', 'rffr', '4334', 2, 0.00, NULL, 0, 0.00, NULL, NULL),
+(72, 'efef', 'effe', '44', 2, 0.00, NULL, 0, 0.00, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -123,7 +128,36 @@ INSERT INTO `cuentas` (`id`, `cliente_id`, `estado_pago`, `cantidad_bidones`, `p
 (186, 65, 0, 4.00, 7000.00, 28000.00, '2026-03-14 20:57:39', 0.00),
 (194, 67, 1, 3.00, 5500.00, 16500.00, '2026-03-14 21:26:09', 0.00),
 (195, 67, 1, 3.00, 5500.00, 16500.00, '2026-03-14 21:42:02', 0.00),
-(197, 67, 0, 2.00, 5500.00, 11000.00, '2026-03-14 21:58:01', 0.00);
+(197, 67, 0, 2.00, 5500.00, 11000.00, '2026-03-14 21:58:01', 0.00),
+(198, 67, 1, 3.00, 5500.00, 16500.00, '2026-03-17 00:17:34', 0.00),
+(199, 69, 0, 3.00, 5500.00, 16500.00, '2026-03-17 00:28:29', 0.00),
+(200, 69, 0, 2.00, 5500.00, 11000.00, '2026-03-17 00:47:47', 0.00),
+(201, 69, 2, 2.00, 5500.00, 11000.00, '2026-03-17 00:54:55', 0.00),
+(202, 67, 2, 2.00, 5500.00, 11000.00, '2026-03-17 00:55:11', 0.00),
+(203, 67, 1, 2.00, 5500.00, 11000.00, '2026-03-17 01:47:52', 0.00),
+(204, 72, 2, 3.00, 5500.00, 16500.00, '2026-03-17 01:48:31', 0.00);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `entregas_diarias`
+--
+
+CREATE TABLE `entregas_diarias` (
+  `id` int(11) NOT NULL,
+  `cliente_id` int(11) NOT NULL,
+  `fecha` date NOT NULL,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `entregas_diarias`
+--
+
+INSERT INTO `entregas_diarias` (`id`, `cliente_id`, `fecha`, `creado_en`) VALUES
+(28, 71, '2026-03-17', '2026-03-17 04:46:57'),
+(30, 69, '2026-03-17', '2026-03-17 04:47:22'),
+(31, 70, '2026-03-17', '2026-03-17 04:47:32');
 
 -- --------------------------------------------------------
 
@@ -420,6 +454,13 @@ ALTER TABLE `cuentas`
   ADD KEY `cuentas_ibfk_1` (`cliente_id`);
 
 --
+-- Indices de la tabla `entregas_diarias`
+--
+ALTER TABLE `entregas_diarias`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_cliente_fecha` (`cliente_id`,`fecha`);
+
+--
 -- Indices de la tabla `mensajes_chat`
 --
 ALTER TABLE `mensajes_chat`
@@ -470,7 +511,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- AUTO_INCREMENT de la tabla `clientes_estados_semanales`
@@ -482,7 +523,13 @@ ALTER TABLE `clientes_estados_semanales`
 -- AUTO_INCREMENT de la tabla `cuentas`
 --
 ALTER TABLE `cuentas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=198;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=205;
+
+--
+-- AUTO_INCREMENT de la tabla `entregas_diarias`
+--
+ALTER TABLE `entregas_diarias`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT de la tabla `mensajes_chat`
@@ -529,6 +576,12 @@ ALTER TABLE `clientes_estados_semanales`
 --
 ALTER TABLE `cuentas`
   ADD CONSTRAINT `cuentas_ibfk_1` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `entregas_diarias`
+--
+ALTER TABLE `entregas_diarias`
+  ADD CONSTRAINT `entregas_diarias_ibfk_1` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `mensajes_chat`

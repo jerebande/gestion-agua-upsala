@@ -362,14 +362,20 @@
                             %>
                             <p>Bidones adeudados: <%= bidonesMostrar %></p>
                             
-                            <!-- Mostrar total fiado del día SOLO para usuario gabriel -->
+                            <!-- Mostrar total fiado del día y total general SOLO para usuario gabriel -->
                             <% if (usuarioRol === 'gabriel') { 
                                 let totalFiado = Number(cliente.totalFiadoHoy) || 0;
                                 let totalMostrar = totalFiado.toFixed(2).replace('.', ',');
+                                let totalFiadoGeneral = Number(cliente.totalFiadoGeneral) || 0;
+                                let totalMostrarGeneral = totalFiadoGeneral.toFixed(2).replace('.', ',');
                             %>
                                 <p class="total-fiado-dia">
                                     <i class="fas fa-clock" style="color: #f39c12;"></i> 
                                     Fiado hoy: <strong>$<%= totalMostrar %></strong>
+                                </p>
+                                <p class="total-fiado-general">
+                                    <i class="fas fa-chart-line" style="color: #8e44ad;"></i>
+                                    Total fiado general: <strong>$<%= totalMostrarGeneral %></strong>
                                 </p>
                             <% } %>
 
@@ -562,6 +568,7 @@
         <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
             const socket = io();
             const usuarioId = <%= usuarioId %>;
+            const usuarioRol = '<%= usuarioRol %>'; // Se agrega variable de rol
 
             async function actualizarBadgeHeader() {
                 try {
@@ -584,7 +591,7 @@
             document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
         <% } %>
 
-        // Función para marcar/desmarcar entrega del día (MODIFICADA con confirmación al quitar)
+        // Función para marcar/desmarcar entrega del día (MODIFICADA)
         function toggleEntregaHoy(clienteId, icon) {
             const card = icon.closest('.cliente-card');
             const tieneEntrega = card.classList.contains('border-orange');
@@ -592,17 +599,23 @@
             if (tieneEntrega) {
                 // Confirmación antes de quitar la marca de entrega
                 if (!confirm('¿Confirmás que NO se realizó la entrega hoy?')) {
-                    return; // Si el usuario cancela, no hace nada
+                    return;
                 }
 
-                // Quitar entrega (DELETE)
                 fetch(`/clientes/${clienteId}/entrega-hoy`, {
                     method: 'DELETE'
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload(); // Recargar para actualizar orden y borde
+                        // Redirigir según el rol
+                        if (usuarioRol === 'gabriel') {
+                            location.reload();
+                        } else {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            urlParams.set('page', '1');
+                            window.location.href = '/home?' + urlParams.toString();
+                        }
                     } else {
                         alert('Error al quitar la marca de entrega');
                     }
@@ -612,14 +625,20 @@
                     alert('Ocurrió un error al comunicarse con el servidor');
                 });
             } else {
-                // Marcar entrega (POST) - sin confirmación (o puedes agregarla si lo deseas)
                 fetch(`/clientes/${clienteId}/entrega-hoy`, {
                     method: 'POST'
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload(); // Recargar para que aparezca primero
+                        // Redirigir según el rol
+                        if (usuarioRol === 'gabriel') {
+                            location.reload();
+                        } else {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            urlParams.set('page', '1');
+                            window.location.href = '/home?' + urlParams.toString();
+                        }
                     } else {
                         alert('Error al marcar la entrega');
                     }
@@ -647,7 +666,6 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Recargar para reflejar orden y posible eliminación de entrega
                         location.reload();
                     } else {
                         alert('Error al guardar estado');

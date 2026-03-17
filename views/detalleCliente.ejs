@@ -78,13 +78,130 @@
             cursor: pointer;
             font-size: 1.2rem;
         }
+
+        /* ===== ESTILOS GENERALES DE TABLA ===== */
+        .table-modern td,
+        .table-modern th {
+            font-size: 1rem;
+            padding: 12px 8px;
+            vertical-align: middle;
+        }
+
+        .table-modern th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .table-modern td,
+            .table-modern th {
+                font-size: 0.9rem;
+                padding: 10px 6px;
+            }
+        }
+
+        /* Badges y fechas heredan tamaño por defecto */
+        .table-modern td .badge,
+        .table-modern td .date-cell,
+        .table-modern td .qty-badge,
+        .table-modern td .price-display {
+            font-size: inherit; /* Hereda el tamaño del td */
+        }
+
+        /* ===== ESTILOS ESPECÍFICOS PARA GABRIEL ===== */
+        body.gabriel .table-modern td,
+        body.gabriel .table-modern th {
+            font-size: 1.4rem;  /* Celdas y encabezados más grandes */
+        }
+
+        /* Excepción: los botones de acción mantienen su tamaño original */
+        body.gabriel .table-modern td .btn-payment,
+        body.gabriel .table-modern td .btn-delete {
+            font-size: 0.9rem;   /* Para btn-payment */
+        }
+        body.gabriel .table-modern td .btn-delete {
+            font-size: 1.2rem;   /* Para el icono eliminar */
+        }
+
+        /* Ajuste responsive para gabriel */
+        @media (max-width: 768px) {
+            body.gabriel .table-modern td,
+            body.gabriel .table-modern th {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* ===== ESTILOS PARA BOTONES DE PAGO ===== */
+        .btn-payment,
+        .btn-complete,
+        .btn-partial {
+            color: white !important;
+        }
+
+        .payment-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .btn-payment {
+            background: var(--primary);
+            border: none;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-payment:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-complete {
+            background: #28a745;
+        }
+
+        .btn-partial {
+            background: #ffc107;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: #dc3545;
+            font-size: 1.2rem;
+            margin-left: 8px;
+            transition: color 0.2s;
+        }
+
+        .btn-delete:hover {
+            color: #b02a37;
+        }
+
+        @media (max-width: 480px) {
+            .payment-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .btn-payment {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
-<body>
+<!-- Clase condicional según el rol del usuario -->
+<body class="<%= usuarioRol %>">
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <!-- CAMBIO: Enlace Volver incluye el parámetro dia si existe -->
             <a href="/home<%= dia ? '?dia=' + dia : '' %>" class="header-back">
                 <i class="fas fa-arrow-left"></i>
                 <span>Volver</span>
@@ -105,7 +222,7 @@
             <div class="info-stat">
                 <span class="stat-label">Bidones en Poder</span>
                 <span class="stat-value highlight-blue">
-                    <%
+                    <% 
                         let bidonesVal = Number(cliente.bidones_adeudados);
                         let bidonesMostrar = bidonesVal % 1 === 0 ? bidonesVal.toString() : bidonesVal.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
                     %>
@@ -115,7 +232,7 @@
             <div class="info-stat">
                 <span class="stat-label">Precio Unitario</span>
                 <span class="stat-value">
-                    <%
+                    <% 
                         let precioVal = Number(precioActual);
                         let precioMostrar = precioVal % 1 === 0 ? precioVal.toString() : precioVal.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
                     %>
@@ -133,7 +250,7 @@
                 <div>
                     <h2 class="card-title">Nueva Venta</h2>
                     <p class="card-subtitle">Registra una nueva transacción</p>
-                </div>                                                                   
+                </div>
             </div>
 
             <form class="form-modern" action="/clientes/<%= cliente.id %>/cuentas" method="POST">
@@ -150,7 +267,6 @@
                     </div>
 
                     <% if (usuarioRol === 'gabriel') { %>
-                        <!-- Pestañas para gabriel -->
                         <div style="width: 100%;">
                             <div class="payment-tabs" style="margin-top: 10px;">
                                 <div class="payment-tab active" onclick="switchVentaTab('cantidad')">Por Cantidad</div>
@@ -172,21 +288,12 @@
                     <% } else { %>
                         <div class="form-group">
                             <label for="cantidad_bidones">Cantidad de Bidones</label>
-                            <input                                                     
-                                type="number" 
-                                id="cantidad_bidones" 
-                                name="cantidad_bidones" 
-                                min="1" 
-                                max="999"
-                                required 
-                                placeholder="Ingresa cantidad"
-                            >
+                            <input type="number" id="cantidad_bidones" name="cantidad_bidones" min="1" max="999" required placeholder="Ingresa cantidad">
                         </div>
                     <% } %>
                 </div>
 
                 <% if (usuarioRol === 'gabriel') { %>
-                    <!-- Resumen para gabriel (se actualiza con JS) -->
                     <div class="form-summary" id="gabriel-summary" style="display: none;">
                         <div class="summary-item">
                             <span>Total:</span>
@@ -219,7 +326,7 @@
                 <div class="card-icon info">
                     <i class="fas fa-history"></i>
                 </div>
-                <div>                                                                              
+                <div>
                     <h2 class="card-title">Historial de Movimientos</h2>
                     <p class="card-subtitle"><%= cuentas ? cuentas.length : 0 %> registros</p>
                 </div>
@@ -335,7 +442,7 @@
                     <div class="pagination-info">
                         <span>Página <strong><%= paginaActual %></strong> de <strong><%= totalPaginas %></strong></span>
                         <small>(<%= totalCuentas %> registros totales)</small>
-                    </div>                                                             
+                    </div>
 
                     <% if (paginaActual < totalPaginas) { %>
                         <a href="/clientes/<%= cliente.id %>?pagina=<%= paginaActual + 1 %><%= dia ? '&dia=' + dia : '' %>" class="btn-pagination btn-next">
@@ -374,7 +481,7 @@
                     <div class="status-main">
                         <i class="fas fa-wine-bottle"></i>
                         <span class="counter-value" id="displayActual">
-                            <%
+                            <% 
                                 let bidonesVal2 = Number(cliente.bidones_adeudados);
                                 let bidonesMostrar2 = bidonesVal2 % 1 === 0 ? bidonesVal2.toString() : bidonesVal2.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
                             %>
@@ -390,17 +497,7 @@
                         <button type="button" class="stepper-btn" onclick="adjustValue(-1)">
                             <i class="fas fa-minus"></i>
                         </button>                                               
-                        <input 
-                            type="number" 
-                            name="bidonesAdeudados" 
-                            id="inputBidones" 
-                            value="<%= cliente.bidones_adeudados %>" 
-                            min="0"
-                            max="999"
-                            step="0.01"
-                            required
-                            readonly
-                        >
+                        <input type="number" name="bidonesAdeudados" id="inputBidones" value="<%= cliente.bidones_adeudados %>" min="0" max="999" step="0.01" required readonly>
                         <button type="button" class="stepper-btn" onclick="adjustValue(1)">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -470,7 +567,7 @@
         </section>
         <% } %>
 
-        <!-- Modal Pago Parcial (corregido) -->
+        <!-- Modal Pago Parcial -->
         <div id="partialPaymentModal" class="modal-overlay" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -485,54 +582,35 @@
                         </div>
                         <div class="info-row">
                             <span class="info-label">Bidones:</span>
-                            <!-- El precio unitario se llena con JavaScript usando el valor real de la cuenta -->
                             <span class="info-value"><span id="originalQty">0</span> u. a $<span id="unitPrice"></span> c/u</span>
                         </div>
                     </div>
 
-                    <!-- Pestañas de selección -->
                     <div class="payment-tabs">
                         <div class="payment-tab active" onclick="switchPaymentTab('cantidad')">Por Cantidad</div>
                         <div class="payment-tab" onclick="switchPaymentTab('monto')">Por Monto</div>
                     </div>
 
                     <form id="partialPaymentForm" method="POST">
-                        <!-- Contenido para pago por cantidad -->
                         <div id="tab-cantidad" class="payment-tab-content active">
                             <div class="form-group">
                                 <label for="cantidadPagada">Cantidad de bidones a pagar</label>
                                 <div class="input-group">
-                                    <input 
-                                        type="number" 
-                                        id="cantidadPagada" 
-                                        min="0.01" 
-                                        step="0.01"
-                                        placeholder="Ej: 2,5"
-                                        class="form-control"
-                                    >
+                                    <input type="number" id="cantidadPagada" min="0.01" step="0.01" placeholder="Ej: 2,5" class="form-control">
                                     <span>u.</span>
                                 </div>
                                 <small class="input-hint">Equivale a $<span id="montoCalculado">0</span></small>
                             </div>
                         </div>
 
-                        <!-- Contenido para pago por monto -->
                         <div id="tab-monto" class="payment-tab-content">
                             <div class="form-group">
                                 <label for="montoPagado">Monto a pagar ($)</label>
-                                <input 
-                                    type="number" 
-                                    id="montoPagado" 
-                                    min="0.01" 
-                                    step="0.01"
-                                    placeholder="Ej: 6000"
-                                    class="form-control"
-                                >
+                                <input type="number" id="montoPagado" min="0.01" step="0.01" placeholder="Ej: 6000" class="form-control">
                                 <small class="input-hint">Ingresa el monto en pesos</small>
                             </div>
                         </div>
 
-                        <!-- Campo oculto que se enviará al servidor (siempre el monto) -->
                         <input type="hidden" id="montoFinal" name="monto_pagado">
 
                         <div class="payment-breakdown">
@@ -559,7 +637,7 @@
     </main>
 
     <script>
-        // Funciones para el modal de pago parcial (corregidas)
+        // Funciones para el modal de pago parcial
         function formatearMonto(valor) {
             return valor.toFixed(2).replace('.', ',');
         }
@@ -622,7 +700,6 @@
                 document.querySelectorAll('.payment-tab')[0].classList.add('active');
                 tabCantidad.classList.add('active');
                 inputCantidad.focus();
-                // Actualizar por si hay valor
                 actualizarDesdeCantidad();
             } else {
                 document.querySelectorAll('.payment-tab')[1].classList.add('active');
@@ -642,7 +719,6 @@
             let precioUnitario = parseFloat(unitPriceSpan.textContent.replace(',', '.')) || 0;
             let totalMostrado = parseFloat(totalAmountSpan.textContent.replace(',', '.')) || 0;
             
-            // Calcular cantidad máxima permitida (evitar decimales infinitos)
             let maxCantidad = totalMostrado / precioUnitario;
             if (cantidad > maxCantidad) {
                 cantidad = maxCantidad;
@@ -695,7 +771,6 @@
             if (e.target === modal) closePartialPaymentModal();
         });
 
-        // Función para ajustar bidones (stepper)
         function adjustValue(delta) {
             const input = document.getElementById('inputBidones');
             let current = parseFloat(input.value) || 0;
@@ -742,7 +817,6 @@
         if (cantidadInput) cantidadInput.addEventListener('input', actualizarTotal);
         actualizarTotal();
 
-        // Función eliminarEstadoSemanal (solo definida si existe el botón)
         function eliminarEstadoSemanal(id, estado) {
             if (confirm(`¿Eliminar registro de "${estado}"?`)) {
                 fetch(`/clientes/estado-semanal/${id}`, {
@@ -762,7 +836,6 @@
             }
         }
 
-        // Funciones para pestañas de nueva venta (gabriel)
         function switchVentaTab(tab) {
             const tabs = document.querySelectorAll('.payment-tab');
             const contents = document.querySelectorAll('#venta-tab-cantidad, #venta-tab-monto');
@@ -774,7 +847,6 @@
                 document.getElementById('cantidad_bidones').disabled = false;
                 document.getElementById('monto').disabled = true;
                 document.getElementById('monto').value = '';
-                // Mostrar resumen si es necesario (para gabriel)
                 document.getElementById('gabriel-summary').style.display = 'none';
             } else {
                 tabs[1].classList.add('active');
@@ -782,9 +854,7 @@
                 document.getElementById('monto').disabled = false;
                 document.getElementById('cantidad_bidones').disabled = true;
                 document.getElementById('cantidad_bidones').value = '';
-                // Mostrar resumen (total = monto ingresado)
                 document.getElementById('gabriel-summary').style.display = 'block';
-                // Podríamos actualizar el total con el monto
                 const montoInput = document.getElementById('monto');
                 const totalPrice = document.querySelector('#gabriel-summary .total-price');
                 if (montoInput && totalPrice) {
@@ -796,7 +866,6 @@
             }
         }
 
-        // Inicializar para gabriel
         <% if (usuarioRol === 'gabriel') { %>
             document.addEventListener('DOMContentLoaded', function() {
                 switchVentaTab('cantidad');
