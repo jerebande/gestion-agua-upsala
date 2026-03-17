@@ -2,7 +2,7 @@ const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
 const UsuarioModel = require("../models/usuarios");
 const usuarioModel = new UsuarioModel();
-const pool = require("../database/db"); // Necesario para eliminarEstadoSemanal
+const pool = require("../database/db");
 
 class ClienteController {
     
@@ -25,7 +25,6 @@ class ClienteController {
         }
     }
     
-    // 📌 MODIFICADO: calcula totales a partir de las cuentas obtenidas
     async listarCuentasPorFecha(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
 
@@ -37,7 +36,6 @@ class ClienteController {
             const nombreUsuario = req.session.usuario.nombre;
             const cuentas = await clienteModel.obtenerCuentasPorFecha(fecha, usuarioId);
 
-            // Calcular totales a partir de las cuentas (filtradas por usuario)
             let totalGeneral = 0, totalPagados = 0, totalFiados = 0, totalTransferencias = 0;
             cuentas.forEach(c => {
                 const total = parseFloat(c.total) || 0;
@@ -187,6 +185,7 @@ class ClienteController {
         }
     }
 
+    // --- MÉTODO MODIFICADO: agregarCuenta ---
     async agregarCuenta(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
@@ -252,6 +251,10 @@ class ClienteController {
                     total
                 });
             }
+
+            // 🔥 Eliminar la marca de "entrega hoy" ya que se registró una venta
+            await clienteModel.quitarEntregaHoy(id);
+
             res.redirect(`/clientes/${id}`);
         } catch (error) {
             console.error("Error al agregar cuenta:", error);
@@ -259,7 +262,7 @@ class ClienteController {
         }
     }
 
-   async obtenerClientePorId(req, res) {
+    async obtenerClientePorId(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
         const pagina = parseInt(req.query.pagina) || 1;
@@ -367,7 +370,7 @@ class ClienteController {
         }
     }
 
-    // ----- MÉTODOS PARA ESTADOS SEMANALES (solo accesibles por rol 'gabriel') -----
+    // ----- MÉTODOS PARA ESTADOS SEMANALES -----
     async guardarEstadoSemanal(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         if (req.session.usuario.rol !== 'gabriel') {
@@ -391,6 +394,9 @@ class ClienteController {
             const semanaStr = monday.toISOString().split('T')[0];
 
             await clienteModel.guardarEstadoSemanal(id, semanaStr, estado);
+            // Al marcar un estado semanal, se quita la entrega del día si existía
+            await clienteModel.quitarEntregaHoy(id);
+
             res.json({ success: true, estado });
         } catch (error) {
             console.error("Error al guardar estado semanal:", error);
@@ -419,6 +425,43 @@ class ClienteController {
             res.json({ success: true });
         } catch (error) {
             console.error("Error al eliminar estado semanal:", error);
+            res.status(500).json({ error: "Error del servidor" });
+        }
+    }
+
+    // ----- NUEVOS MÉTODOS PARA ENTREGA HOY -----
+    async marcarEntregaHoy(req, res) {
+        if (!req.session.usuario) return res.redirect("/login");
+        const { id } = req.params;
+        const usuarioId = req.session.usuario.id;
+
+        try {
+            const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
+            if (!cliente) {
+                return res.status(404).json({ error: "Cliente no encontrado o sin permiso" });
+            }
+            await clienteModel.marcarEntregaHoy(id);
+            res.json({ success: true });
+        } catch (error) {
+            console.error("Error al marcar entrega hoy:", error);
+            res.status(500).json({ error: "Error del servidor" });
+        }
+    }
+
+    async quitarEntregaHoy(req, res) {
+        if (!req.session.usuario) return res.redirect("/login");
+        const { id } = req.params;
+        const usuarioId = req.session.usuario.id;
+
+        try {
+            const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
+            if (!cliente) {
+                return res.status(404).json({ error: "Cliente no encontrado o sin permiso" });
+            }
+            await clienteModel.quitarEntregaHoy(id);
+            res.json({ success: true });
+        } catch (error) {
+            console.error("Error al quitar entrega hoy:", error);
             res.status(500).json({ error: "Error del servidor" });
         }
     }

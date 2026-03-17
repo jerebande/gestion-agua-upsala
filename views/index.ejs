@@ -228,6 +228,10 @@
         .cliente-card.border-gray {
             border: 2px solid gray;
         }
+        /* NUEVO: borde naranja para entrega hoy */
+        .cliente-card.border-orange {
+            border: 2px solid orange;
+        }
 
         /* Estilos para los íconos de estado semanal */
         .estado-semanal-icons {
@@ -267,7 +271,7 @@
                     <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
                 <% } %>
             </a>
-                                <a href="/configuracion" class="admin-link">configuración</a>
+            <a href="/configuracion" class="admin-link">configuración</a>
             <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>            
                 <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
             <% } %>                                                                                            
@@ -304,9 +308,11 @@
             <% if (clientes && clientes.length) { %>
                 <div class="clientes-container">
                     <% clientes.forEach(cliente => { 
-                        // Determinar clase de borde según estado semanal actual
+                        // Determinar clase de borde según estado semanal actual o entrega hoy
                         let borderClass = '';
-                        if (usuarioRol === 'gabriel' && estadosSemanales && estadosSemanales[cliente.id]) {
+                        if (cliente.entrega_hoy) {
+                            borderClass = 'border-orange'; // Prioridad: entrega hoy
+                        } else if (usuarioRol === 'gabriel' && estadosSemanales && estadosSemanales[cliente.id]) {
                             if (estadosSemanales[cliente.id] === 'compro') borderClass = 'border-green';
                             else if (estadosSemanales[cliente.id] === 'no_compro') borderClass = 'border-red';
                             else if (estadosSemanales[cliente.id] === 'no_estaba') borderClass = 'border-gray';
@@ -315,6 +321,11 @@
                         <div class="cliente-card <%= borderClass %>" data-id="<%= cliente.id %>" data-nombre="<%= cliente.nombre %>" data-direccion="<%= cliente.direccion %>" data-telefono="<%= cliente.telefono %>" id="cliente-<%= cliente.id %>">
                             <p>
                                 <i class="fas fa-user"></i>  <%= cliente.nombre %>
+                                <!-- NUEVO: Icono de entrega hoy -->
+                                <i class="fas fa-truck entrega-hoy-icon" 
+                                   onclick="toggleEntregaHoy(<%= cliente.id %>, this)"
+                                   style="float: right; cursor: pointer; color: <%= cliente.entrega_hoy ? 'orange' : 'gray' %>; margin-right: 10px;"
+                                   title="Marcar como entregado hoy"></i>
                             </p>
                             
                             <p class="direccion">
@@ -353,7 +364,6 @@
                             
                             <!-- Mostrar total fiado del día SOLO para usuario gabriel -->
                             <% if (usuarioRol === 'gabriel') { 
-                                // CAMBIO: Aseguramos que totalFiadoHoy sea un número y lo formateamos siempre con 2 decimales
                                 let totalFiado = Number(cliente.totalFiadoHoy) || 0;
                                 let totalMostrar = totalFiado.toFixed(2).replace('.', ',');
                             %>
@@ -574,7 +584,54 @@
             document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
         <% } %>
 
-        // Nuevo: Manejo de clic en íconos de estado semanal (solo se ejecuta si existen)
+        // Función para marcar/desmarcar entrega del día (MODIFICADA con confirmación al quitar)
+        function toggleEntregaHoy(clienteId, icon) {
+            const card = icon.closest('.cliente-card');
+            const tieneEntrega = card.classList.contains('border-orange');
+
+            if (tieneEntrega) {
+                // Confirmación antes de quitar la marca de entrega
+                if (!confirm('¿Confirmás que NO se realizó la entrega hoy?')) {
+                    return; // Si el usuario cancela, no hace nada
+                }
+
+                // Quitar entrega (DELETE)
+                fetch(`/clientes/${clienteId}/entrega-hoy`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload(); // Recargar para actualizar orden y borde
+                    } else {
+                        alert('Error al quitar la marca de entrega');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Ocurrió un error al comunicarse con el servidor');
+                });
+            } else {
+                // Marcar entrega (POST) - sin confirmación (o puedes agregarla si lo deseas)
+                fetch(`/clientes/${clienteId}/entrega-hoy`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload(); // Recargar para que aparezca primero
+                    } else {
+                        alert('Error al marcar la entrega');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Ocurrió un error al comunicarse con el servidor');
+                });
+            }
+        }
+
+        // Manejo de clic en íconos de estado semanal (solo se ejecuta si existen)
         document.querySelectorAll('.estado-icon').forEach(icon => {
             icon.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -590,17 +647,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Actualizar borde
-                        card.classList.remove('border-green', 'border-red', 'border-gray');
-                        if (estado === 'compro') card.classList.add('border-green');
-                        else if (estado === 'no_compro') card.classList.add('border-red');
-                        else if (estado === 'no_estaba') card.classList.add('border-gray');
-
-                        // Actualizar clase active en íconos
-                        card.querySelectorAll('.estado-icon').forEach(ic => {
-                            ic.classList.remove('active');
-                        });
-                        this.classList.add('active');
+                        // Recargar para reflejar orden y posible eliminación de entrega
+                        location.reload();
                     } else {
                         alert('Error al guardar estado');
                     }

@@ -31,7 +31,6 @@ class ClienteModel {
         return rows;
     }
 
-    // 📌 MODIFICADO: usa rango de fechas y devuelve solo las cuentas (sin subconsultas de totales)
     async obtenerCuentasPorFecha(fecha, usuarioId) {
         const sql = `
             SELECT 
@@ -284,6 +283,36 @@ class ClienteModel {
         `;
         const [rows] = await pool.query(sql, [clienteId, fecha]);
         return rows[0].total_fiado;
+    }
+
+    // ----- NUEVOS MÉTODOS PARA ENTREGAS DIARIAS -----
+    async marcarEntregaHoy(clienteId) {
+        const fecha = new Date().toISOString().split('T')[0];
+        const sql = `
+            INSERT INTO entregas_diarias (cliente_id, fecha)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE id = id
+        `;
+        const [result] = await pool.query(sql, [clienteId, fecha]);
+        return result;
+    }
+
+    async quitarEntregaHoy(clienteId) {
+        const fecha = new Date().toISOString().split('T')[0];
+        const sql = `DELETE FROM entregas_diarias WHERE cliente_id = ? AND fecha = ?`;
+        const [result] = await pool.query(sql, [clienteId, fecha]);
+        return result;
+    }
+
+    async obtenerEntregasHoy(usuarioId, fecha) {
+        const sql = `
+            SELECT ed.cliente_id
+            FROM entregas_diarias ed
+            JOIN clientes c ON ed.cliente_id = c.id
+            WHERE c.usuario_id = ? AND ed.fecha = ?
+        `;
+        const [rows] = await pool.query(sql, [usuarioId, fecha]);
+        return rows.map(row => row.cliente_id);
     }
 }
 

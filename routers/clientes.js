@@ -17,11 +17,15 @@ router.post("/clientes", (req, res) => clienteController.guardarCliente(req, res
 router.post("/clientes/:idCliente/cuentas/:idCuenta/actualizarEstadoPago", (req, res) => clienteController.actualizarEstadoPago(req, res));
 router.post('/clientes/:idCliente/cuentas/:idCuenta/pago-parcial', clienteController.registrarPagoParcial.bind(clienteController));
 
-// Ruta para actualizar datos básicos (nombre, dirección, teléfono)
+// Ruta para actualizar datos básicos
 router.put("/clientes/:id", (req, res) => clienteController.actualizarDatosBasicos(req, res));
 
-// ----- NUEVAS RUTAS PARA ESTADOS SEMANALES -----
+// ----- RUTAS PARA ESTADOS SEMANALES -----
 router.post("/clientes/:id/estado-semanal", (req, res) => clienteController.guardarEstadoSemanal(req, res));
 router.delete("/clientes/estado-semanal/:id", (req, res) => clienteController.eliminarEstadoSemanal(req, res));
+
+// ----- NUEVAS RUTAS PARA ENTREGA HOY -----
+router.post("/clientes/:id/entrega-hoy", (req, res) => clienteController.marcarEntregaHoy(req, res));
+router.delete("/clientes/:id/entrega-hoy", (req, res) => clienteController.quitarEntregaHoy(req, res));
 
 module.exports = router;
