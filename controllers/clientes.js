@@ -1,8 +1,9 @@
-const ClienteModel = require("../models/clientes"); 
+const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
 const UsuarioModel = require("../models/usuarios");
 const usuarioModel = new UsuarioModel();
 const pool = require("../database/db");
+const { obtenerFechaLocal, obtenerLunesSemanaActual } = require("../utils/fecha"); // <-- NUEVO
 
 class ClienteController {
     
@@ -28,7 +29,8 @@ class ClienteController {
     async listarCuentasPorFecha(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
 
-        const fecha = req.query.fecha || new Date().toISOString().split("T")[0];
+        // Usar fecha local en lugar de UTC
+        const fecha = req.query.fecha || obtenerFechaLocal(); // <-- MODIFICADO
         const usuarioId = req.session.usuario.id;
         const usuarioRol = req.session.usuario.rol;
 
@@ -185,7 +187,6 @@ class ClienteController {
         }
     }
 
-    // --- MÉTODO MODIFICADO: agregarCuenta ---
     async agregarCuenta(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
@@ -252,7 +253,7 @@ class ClienteController {
                 });
             }
 
-            // 🔥 Eliminar la marca de "entrega hoy" ya que se registró una venta
+            // Quitar la marca de "entrega hoy" ya que se registró una venta
             await clienteModel.quitarEntregaHoy(id);
 
             res.redirect(`/clientes/${id}`);
@@ -386,12 +387,8 @@ class ClienteController {
             const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
             if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
 
-            const fechaHoy = new Date();
-            const diaSemana = fechaHoy.getDay();
-            const diff = diaSemana === 0 ? 6 : diaSemana - 1;
-            const monday = new Date(fechaHoy);
-            monday.setDate(fechaHoy.getDate() - diff);
-            const semanaStr = monday.toISOString().split('T')[0];
+            // Calcular lunes de la semana actual con función local
+            const semanaStr = obtenerLunesSemanaActual(); // <-- MODIFICADO
 
             await clienteModel.guardarEstadoSemanal(id, semanaStr, estado);
             // Al marcar un estado semanal, se quita la entrega del día si existía

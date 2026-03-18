@@ -275,13 +275,17 @@ class ClienteModel {
         return map;
     }
 
+    // ----- MÉTODO MEJORADO: obtenerTotalFiadoPorClienteYFecha con rango -----
     async obtenerTotalFiadoPorClienteYFecha(clienteId, fecha) {
         const sql = `
             SELECT IFNULL(SUM(total), 0) as total_fiado
             FROM cuentas
-            WHERE cliente_id = ? AND DATE(fecha_publicacion) = ? AND estado_pago = 0
+            WHERE cliente_id = ? 
+              AND fecha_publicacion >= ? 
+              AND fecha_publicacion < DATE_ADD(?, INTERVAL 1 DAY)
+              AND estado_pago = 0
         `;
-        const [rows] = await pool.query(sql, [clienteId, fecha]);
+        const [rows] = await pool.query(sql, [clienteId, fecha, fecha]);
         return rows[0].total_fiado;
     }
 
@@ -298,7 +302,8 @@ class ClienteModel {
 
     // ----- NUEVOS MÉTODOS PARA ENTREGAS DIARIAS -----
     async marcarEntregaHoy(clienteId) {
-        const fecha = new Date().toISOString().split('T')[0];
+        const { obtenerFechaLocal } = require("../utils/fecha");
+        const fecha = obtenerFechaLocal(); // <-- MODIFICADO
         const sql = `
             INSERT INTO entregas_diarias (cliente_id, fecha)
             VALUES (?, ?)
@@ -309,7 +314,8 @@ class ClienteModel {
     }
 
     async quitarEntregaHoy(clienteId) {
-        const fecha = new Date().toISOString().split('T')[0];
+        const { obtenerFechaLocal } = require("../utils/fecha");
+        const fecha = obtenerFechaLocal(); // <-- MODIFICADO
         const sql = `DELETE FROM entregas_diarias WHERE cliente_id = ? AND fecha = ?`;
         const [result] = await pool.query(sql, [clienteId, fecha]);
         return result;

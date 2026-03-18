@@ -4,6 +4,7 @@ const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
 const ConfiguracionModel = require("../models/configuracion");
 const configuracionModel = new ConfiguracionModel();
+const { obtenerFechaLocal, obtenerLunesSemanaActual } = require("../utils/fecha"); // <-- NUEVO
 
 class UsuarioController {
     async mostrarInvitaciones(req, res) {
@@ -38,7 +39,8 @@ class UsuarioController {
             if (rol === 'gabriel') {
                 diaSeleccionado = dia || 'lunes';
                 todosLosClientes = await clienteModel.obtenerClientesFiltrados(usuarioId, filtro, diaSeleccionado);
-                const fechaHoy = new Date().toISOString().split('T')[0];
+                // Usar fecha local
+                const fechaHoy = obtenerFechaLocal(); // <-- MODIFICADO
                 for (let cliente of todosLosClientes) {
                     cliente.totalFiadoHoy = await clienteModel.obtenerTotalFiadoPorClienteYFecha(cliente.id, fechaHoy);
                     // Solo para gabriel se calcula el total general de fiado
@@ -54,17 +56,12 @@ class UsuarioController {
             // Obtener estado semanal actual solo para rol gabriel
             let estadosSemanales = {};
             if (rol === 'gabriel') {
-                const fechaHoy = new Date();
-                const diaSemana = fechaHoy.getDay(); // 0 domingo, 1 lunes...
-                const diff = diaSemana === 0 ? 6 : diaSemana - 1;
-                const monday = new Date(fechaHoy);
-                monday.setDate(fechaHoy.getDate() - diff);
-                const semanaStr = monday.toISOString().split('T')[0];
+                const semanaStr = obtenerLunesSemanaActual(); // <-- MODIFICADO
                 estadosSemanales = await clienteModel.obtenerEstadosSemanalesPorUsuarioYSemana(usuarioId, semanaStr);
             }
 
             // --- Obtener entregas del día y mapear a TODOS los clientes ---
-            const fechaHoy = new Date().toISOString().split('T')[0];
+            const fechaHoy = obtenerFechaLocal(); // <-- MODIFICADO
             const entregasHoyIds = await clienteModel.obtenerEntregasHoy(usuarioId, fechaHoy);
 
             // Mapear propiedad entrega_hoy a cada cliente en todosLosClientes
