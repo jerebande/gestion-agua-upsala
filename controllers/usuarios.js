@@ -27,10 +27,10 @@ class UsuarioController {
 
     async home(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
-
+                                                                         
         const { filtro, page = 1, dia } = req.query;
         const { id: usuarioId, rol } = req.session.usuario;
-        const clientesPorPagina = 5;
+        const clientesPorPagina = 20;
 
         try {
             let todosLosClientes;
