@@ -31,6 +31,7 @@ class UsuarioController {
         const { filtro, page = 1, dia } = req.query;
         const { id: usuarioId, rol } = req.session.usuario;
         const clientesPorPagina = 20;
+        const precioActual = await usuarioModel.obtenerPrecioUsuario(usuarioId);
 
         try {
             let todosLosClientes;
@@ -97,7 +98,8 @@ class UsuarioController {
                 page: Number(page), 
                 totalPaginas,
                 diaSeleccionado,
-                estadosSemanales
+                estadosSemanales,
+                 precioActual
             });
         } catch (error) {
             console.error("Error en home:", error);

@@ -3,7 +3,7 @@ const clienteModel = new ClienteModel();
 const UsuarioModel = require("../models/usuarios");
 const usuarioModel = new UsuarioModel();
 const pool = require("../database/db");
-const { obtenerFechaLocal, obtenerLunesSemanaActual } = require("../utils/fecha"); // <-- NUEVO
+const { obtenerFechaLocal, obtenerLunesSemanaActual } = require("../utils/fecha");
 
 class ClienteController {
     
@@ -29,8 +29,7 @@ class ClienteController {
     async listarCuentasPorFecha(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
 
-        // Usar fecha local en lugar de UTC
-        const fecha = req.query.fecha || obtenerFechaLocal(); // <-- MODIFICADO
+        const fecha = req.query.fecha || obtenerFechaLocal();
         const usuarioId = req.session.usuario.id;
         const usuarioRol = req.session.usuario.rol;
 
@@ -187,6 +186,7 @@ class ClienteController {
         }
     }
 
+    // ===== MÉTODO MODIFICADO PARA RESPONDER JSON SOLO SI ES XHR =====
     async agregarCuenta(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
@@ -256,10 +256,19 @@ class ClienteController {
             // Quitar la marca de "entrega hoy" ya que se registró una venta
             await clienteModel.quitarEntregaHoy(id);
 
-            res.redirect(`/clientes/${id}`);
+            // Si la petición es AJAX (X-Requested-With), responder JSON
+            if (req.xhr) {
+                return res.json({ success: true });
+            } else {
+                return res.redirect(`/clientes/${id}`);
+            }
         } catch (error) {
             console.error("Error al agregar cuenta:", error);
-            res.status(500).send("Error del servidor al agregar cuenta.");
+            if (req.xhr) {
+                return res.status(500).json({ error: "Error del servidor al agregar cuenta." });
+            } else {
+                return res.status(500).send("Error del servidor al agregar cuenta.");
+            }
         }
     }
 
@@ -387,11 +396,9 @@ class ClienteController {
             const cliente = await clienteModel.obtenerClientePorId(id, usuarioId);
             if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
 
-            // Calcular lunes de la semana actual con función local
-            const semanaStr = obtenerLunesSemanaActual(); // <-- MODIFICADO
+            const semanaStr = obtenerLunesSemanaActual();
 
             await clienteModel.guardarEstadoSemanal(id, semanaStr, estado);
-            // Al marcar un estado semanal, se quita la entrega del día si existía
             await clienteModel.quitarEntregaHoy(id);
 
             res.json({ success: true, estado });
@@ -426,7 +433,7 @@ class ClienteController {
         }
     }
 
-    // ----- NUEVOS MÉTODOS PARA ENTREGA HOY -----
+    // ----- MÉTODOS PARA ENTREGA HOY -----
     async marcarEntregaHoy(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
