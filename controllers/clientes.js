@@ -26,12 +26,13 @@ class ClienteController {
         }
     }
     
-    async listarCuentasPorFecha(req, res) {
+      async listarCuentasPorFecha(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
 
         const fecha = req.query.fecha || obtenerFechaLocal();
         const usuarioId = req.session.usuario.id;
         const usuarioRol = req.session.usuario.rol;
+        const periodoSeleccionado = req.query.periodo || '7dias';
 
         try {
             const nombreUsuario = req.session.usuario.nombre;
@@ -46,15 +47,29 @@ class ClienteController {
                 else if (c.estado_pago == 2) totalTransferencias += total;
             });
 
-            const periodo7dias = await clienteModel.obtenerCuentasPorPeriodo('7dias', usuarioId);
-            const periodo1mes = await clienteModel.obtenerCuentasPorPeriodo('1mes', usuarioId);
-            const periodo6meses = await clienteModel.obtenerCuentasPorPeriodo('6meses', usuarioId);
-            const periodo1anio = await clienteModel.obtenerCuentasPorPeriodo('1anio', usuarioId);
+            let datosPeriodo;
+            switch (periodoSeleccionado) {
+                case '7dias':
+                    datosPeriodo = await clienteModel.obtenerCuentasPorPeriodo('7dias', usuarioId);
+                    break;
+                case '1mes':
+                    datosPeriodo = await clienteModel.obtenerCuentasPorPeriodo('1mes', usuarioId);
+                    break;
+                case '6meses':
+                    datosPeriodo = await clienteModel.obtenerCuentasPorPeriodo('6meses', usuarioId);
+                    break;
+                case '1anio':
+                    datosPeriodo = await clienteModel.obtenerCuentasPorPeriodo('1anio', usuarioId);
+                    break;
+                default:
+                    datosPeriodo = await clienteModel.obtenerCuentasPorPeriodo('7dias', usuarioId);
+            }
 
             res.render("historialCuentas", { 
                 cuentas, fecha, nombreUsuario, usuarioRol, usuarioId,
                 totalGeneral, totalPagados, totalFiados, totalTransferencias,
-                periodo7dias, periodo1mes, periodo6meses, periodo1anio
+                datosPeriodo,
+                periodoSeleccionado
             });
         } catch (error) {
             console.error("Error al obtener cuentas por fecha:", error);
@@ -186,7 +201,6 @@ class ClienteController {
         }
     }
 
-    // ===== MÉTODO MODIFICADO PARA RESPONDER JSON SOLO SI ES XHR =====
     async agregarCuenta(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
         const { id } = req.params;
@@ -253,10 +267,8 @@ class ClienteController {
                 });
             }
 
-            // Quitar la marca de "entrega hoy" ya que se registró una venta
             await clienteModel.quitarEntregaHoy(id);
 
-            // Si la petición es AJAX (X-Requested-With), responder JSON
             if (req.xhr) {
                 return res.json({ success: true });
             } else {

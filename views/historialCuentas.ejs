@@ -3,12 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Cuentas</title>                                                               
+    <title>Historial de Cuentas</title>
     <link rel="stylesheet" href="/public/css/historialCuentas.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <link rel="stylesheet" href="/public/css/index.css">
     <style>
+        /* Estilos específicos para las pestañas */
+        .period-selector {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .period-tabs {
+            display: inline-flex;
+            gap: 10px;
+            background: var(--bg-card);
+            padding: 8px;
+            border-radius: 50px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .period-tab {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: inline-block;
+        }
+        .period-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        .period-tab:hover:not(.active) {
+            background: rgba(0,0,0,0.05);
+        }
+        .period-card {
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+        /* Responsive */
+        @media (max-width: 600px) {
+            .period-tabs {
+                flex-wrap: wrap;
+                border-radius: 20px;
+                justify-content: center;
+            }
+            .period-tab {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+        }
+        /* Badge de notificaciones */
         .badge-unread {
             position: absolute;
             right: 8px;
@@ -34,7 +84,6 @@
                 font-size: 0.7rem;
             }
         }
-
         @media (max-width: 768px) {
             header .nav-menu {
                 position: fixed !important;
@@ -47,11 +96,9 @@
                 display: flex !important;
             }
         }
-
         .registroinicio a {
             padding: 4.4px 18px !important;
         }
-
         .pagination-container {
             display: flex;
             justify-content: center;
@@ -60,7 +107,6 @@
             margin-top: 25px;
             flex-wrap: wrap;
         }
-
         .pagination-btn {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -73,24 +119,20 @@
             min-width: 40px;
             text-align: center;
         }
-
         .pagination-btn:hover:not(:disabled) {
             background: var(--primary);
             color: white;
             border-color: var(--primary);
         }
-
         .pagination-btn.active {
             background: var(--primary);
             color: white;
             border-color: var(--primary);
         }
-
         .pagination-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-
         @media (max-width: 480px) {
             .pagination-container {
                 gap: 5px;
@@ -111,19 +153,17 @@
         </div>
         <nav class="nav-menu">                                               
             <a href="/home">Inicio</a>                                                                                                                                                                                                                                                                                                 
-            <a href="/historial/cuentas"> historial</a>
+            <a href="/historial/cuentas">historial</a>
             <a href="/notas">notas</a>
-            <!-- NUEVO: Enlace de chat con badge de notificaciones -->
             <a href="/chat/grupal" class="chat-link">
                 chat
                 <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
                     <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
                 <% } %>
             </a>
-             <a href="/configuracion" class="admin-link">configuración</a>
+            <a href="/configuracion" class="admin-link">configuración</a>
             <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>            
                 <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
-               
             <% } %>                                                                                            
         </nav>                                                                                                                                                                      
         <div class="registroinicio">
@@ -140,162 +180,66 @@
     <main class="main-container">
         <h1>Historial de Cuentas</h1>
 
-        <form action="/historial/cuentas" method="GET">
+        <!-- Formulario de selección de fecha -->
+        <form action="/historial/cuentas" method="GET" style="margin-bottom: 20px;">
             <label for="fecha">Seleccionar Fecha:</label>
             <input type="date" id="fecha" name="fecha" value="<%= fecha %>">
             <button type="submit">Buscar</button>
         </form>
 
-        <div class="periods-grid">
-            <div class="period-card">
-                <div class="period-header">
-                    <h2 class="period-title">Últimos 7 Días</h2>
-                    <div class="period-icon">
-                        <i class="fas fa-calendar"></i>
-                    </div>
-                </div>
+        <!-- Pestañas de período -->
+        <div class="period-selector">
+            <div class="period-tabs">
+                <a href="?periodo=7dias&fecha=<%= fecha %>" class="period-tab <%= periodoSeleccionado === '7dias' ? 'active' : '' %>">Últimos 7 días</a>
+                <a href="?periodo=1mes&fecha=<%= fecha %>" class="period-tab <%= periodoSeleccionado === '1mes' ? 'active' : '' %>">Último mes</a>
+                <a href="?periodo=6meses&fecha=<%= fecha %>" class="period-tab <%= periodoSeleccionado === '6meses' ? 'active' : '' %>">Últimos 6 meses</a>
+                <a href="?periodo=1anio&fecha=<%= fecha %>" class="period-tab <%= periodoSeleccionado === '1anio' ? 'active' : '' %>">Último año</a>
+            </div>
+        </div>
 
-                <div class="stats-grid">
-                    <div class="stat-box stat-pagados">
-                        <div class="stat-label">Pagado</div>
-                        <div class="stat-value">$<%= (periodo7dias.pagados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-fiados">
-                        <div class="stat-label">Fiado</div>
-                        <div class="stat-value">$<%= (periodo7dias.fiados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-transferencias">
-                        <div class="stat-label">Transferido</div>
-                        <div class="stat-value">$<%= (periodo7dias.transferencias || 0).toFixed(2) %></div>
-                    </div>
-                </div>
-
-                <div class="chart-container">
-                    <canvas id="chart7dias"></canvas>
-                </div>
-
-                <div class="balance-display">
-                    <div class="balance-item">
-                        <div class="balance-label">Total Vendido</div>
-                        <div class="balance-amount <%= periodo7dias.total > 0 ? 'positive' : 'negative' %>">
-                            $<%= (periodo7dias.total || 0).toFixed(2) %>
-                        </div>
-                    </div>
+        <!-- Tarjeta única con los datos del período seleccionado -->
+        <div class="period-card">
+            <div class="period-header">
+                <h2 class="period-title">
+                    <%= periodoSeleccionado === '7dias' ? 'Últimos 7 Días' :
+                       periodoSeleccionado === '1mes' ? 'Último Mes' :
+                       periodoSeleccionado === '6meses' ? 'Últimos 6 Meses' : 'Último Año' %>
+                </h2>
+                <div class="period-icon">
+                    <i class="fas fa-calendar"></i>
                 </div>
             </div>
 
-            <div class="period-card">
-                <div class="period-header">
-                    <h2 class="period-title">Último Mes</h2>
-                    <div class="period-icon">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
+            <div class="stats-grid">
+                <div class="stat-box stat-pagados">
+                    <div class="stat-label">Pagado</div>
+                    <div class="stat-value">$<%= (datosPeriodo.pagados || 0).toFixed(2) %></div>
                 </div>
-
-                <div class="stats-grid">
-                    <div class="stat-box stat-pagados">
-                        <div class="stat-label">Pagado</div>
-                        <div class="stat-value">$<%= (periodo1mes.pagados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-fiados">
-                        <div class="stat-label">Fiado</div>
-                        <div class="stat-value">$<%= (periodo1mes.fiados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-transferencias">
-                        <div class="stat-label">Transferido</div>
-                        <div class="stat-value">$<%= (periodo1mes.transferencias || 0).toFixed(2) %></div>
-                    </div>
+                <div class="stat-box stat-fiados">
+                    <div class="stat-label">Fiado</div>
+                    <div class="stat-value">$<%= (datosPeriodo.fiados || 0).toFixed(2) %></div>
                 </div>
-
-                <div class="chart-container">
-                    <canvas id="chart1mes"></canvas>
-                </div>
-
-                <div class="balance-display">
-                    <div class="balance-item">
-                        <div class="balance-label">Total Vendido</div>
-                        <div class="balance-amount <%= periodo1mes.total > 0 ? 'positive' : 'negative' %>">
-                            $<%= (periodo1mes.total || 0).toFixed(2) %>
-                        </div>
-                    </div>
+                <div class="stat-box stat-transferencias">
+                    <div class="stat-label">Transferido</div>
+                    <div class="stat-value">$<%= (datosPeriodo.transferencias || 0).toFixed(2) %></div>
                 </div>
             </div>
 
-            <div class="period-card">
-                <div class="period-header">
-                    <h2 class="period-title">Últimos 6 Meses</h2>
-                    <div class="period-icon">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-box stat-pagados">
-                        <div class="stat-label">Pagado</div>
-                        <div class="stat-value">$<%= (periodo6meses.pagados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-fiados">
-                        <div class="stat-label">Fiado</div>
-                        <div class="stat-value">$<%= (periodo6meses.fiados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-transferencias">
-                        <div class="stat-label">Transferido</div>
-                        <div class="stat-value">$<%= (periodo6meses.transferencias || 0).toFixed(2) %></div>
-                    </div>
-                </div>
-
-                <div class="chart-container">
-                    <canvas id="chart6meses"></canvas>
-                </div>
-
-                <div class="balance-display">
-                    <div class="balance-item">
-                        <div class="balance-label">Total Vendido</div>
-                        <div class="balance-amount <%= periodo6meses.total > 0 ? 'positive' : 'negative' %>">
-                            $<%= (periodo6meses.total || 0).toFixed(2) %>
-                        </div>
-                    </div>
-                </div>
+            <div class="chart-container">
+                <canvas id="periodChart"></canvas>
             </div>
 
-            <div class="period-card">
-                <div class="period-header">
-                    <h2 class="period-title">Último Año</h2>
-                    <div class="period-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-box stat-pagados">
-                        <div class="stat-label">Pagado</div>
-                        <div class="stat-value">$<%= (periodo1anio.pagados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-fiados">
-                        <div class="stat-label">Fiado</div>
-                        <div class="stat-value">$<%= (periodo1anio.fiados || 0).toFixed(2) %></div>
-                    </div>
-                    <div class="stat-box stat-transferencias">
-                        <div class="stat-label">Transferido</div>
-                        <div class="stat-value">$<%= (periodo1anio.transferencias || 0).toFixed(2) %></div>
-                    </div>
-                </div>
-
-                <div class="chart-container">
-                    <canvas id="chart1anio"></canvas>
-                </div>
-
-                <div class="balance-display">
-                    <div class="balance-item">
-                        <div class="balance-label">Total Vendido</div>
-                        <div class="balance-amount <%= periodo1anio.total > 0 ? 'positive' : 'negative' %>">
-                            $<%= (periodo1anio.total || 0).toFixed(2) %>
-                        </div>
+            <div class="balance-display">
+                <div class="balance-item">
+                    <div class="balance-label">Total Vendido</div>
+                    <div class="balance-amount <%= datosPeriodo.total > 0 ? 'positive' : 'negative' %>">
+                        $<%= (datosPeriodo.total || 0).toFixed(2) %>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Sección: Transacciones del día -->
         <section class="card">
             <div class="card-header">
                 <div class="card-icon">
@@ -329,17 +273,11 @@
                                     <td><%= cuenta.cliente_nombre %></td>
                                     <td>
                                         <% if (cuenta.estado_pago == 1) { %>
-                                            <span class="badge badge-success">
-                                                <i class="fas fa-check"></i> Pagado
-                                            </span>
+                                            <span class="badge badge-success"><i class="fas fa-check"></i> Pagado</span>
                                         <% } else if (cuenta.estado_pago == 2) { %>
-                                            <span class="badge badge-transfer">
-                                                <i class="fas fa-exchange-alt"></i> Transferencia
-                                            </span>
+                                            <span class="badge badge-transfer"><i class="fas fa-exchange-alt"></i> Transferencia</span>
                                         <% } else { %>
-                                            <span class="badge badge-pending">
-                                                <i class="fas fa-clock"></i> Fiado
-                                            </span>
+                                            <span class="badge badge-pending"><i class="fas fa-clock"></i> Fiado</span>
                                         <% } %>
                                     </td>
                                     <% if (usuarioRol === 'gabriel') { %>
@@ -369,6 +307,7 @@
             </div>
         </section>
 
+        <!-- Totales generales -->
         <div class="summary-section">
             <div class="summary-item">
                 <h3>Total General</h3>
@@ -389,52 +328,37 @@
         </div>
     </main>
 
-    <!-- Scripts existentes -->
     <script>
-        const chartConfig = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
+        // Gráfico único para el período seleccionado
+        const ctx = document.getElementById('periodChart').getContext('2d');
+        const data = <%- JSON.stringify(datosPeriodo) %>;
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pagado', 'Fiado', 'Transferido'],
+                datasets: [{
+                    data: [
+                        data.pagados || 0,
+                        data.fiados || 0,
+                        data.transferencias || 0
+                    ],
+                    backgroundColor: ['#22c55e', '#f59e0b', '#0ea5e9'],
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
                 }
             }
-        };
+        });
 
-        function createChart(canvasId, data) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            
-            const colors = [
-                data.pagados > 0 ? '#22c55e' : '#e5e7eb',
-                data.fiados > 0 ? '#f59e0b' : '#e5e7eb',
-                data.transferencias > 0 ? '#0ea5e9' : '#e5e7eb'
-            ];
-
-            return new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Pagado', 'Fiado', 'Transferido'],
-                    datasets: [{
-                        data: [
-                            data.pagados || 0,
-                            data.fiados || 0,
-                            data.transferencias || 0
-                        ],
-                        backgroundColor: colors,
-                        borderColor: '#ffffff',
-                        borderWidth: 2,
-                        borderRadius: 4
-                    }]
-                },
-                options: chartConfig
-            });
-        }
-
-        createChart('chart7dias', <%- JSON.stringify(periodo7dias) %>);
-        createChart('chart1mes', <%- JSON.stringify(periodo1mes) %>);
-        createChart('chart6meses', <%- JSON.stringify(periodo6meses) %>);
-        createChart('chart1anio', <%- JSON.stringify(periodo1anio) %>);
-
+        // Menú responsive
         const menuIcon = document.querySelector('.menu-icon');
         const navMenu = document.querySelector('.nav-menu');
         const mainContainer = document.querySelector('.main-container');
@@ -448,6 +372,7 @@
             }
         });
 
+        // Paginación de la tabla
         (function() {
             const rows = document.querySelectorAll('#transaction-rows .transaction-row');
             const noResultsRow = document.getElementById('no-results-row');
@@ -467,31 +392,22 @@
 
             function showPage(page) {
                 rows.forEach(row => row.style.display = 'none');
-                
                 const start = (page - 1) * rowsPerPage;
                 const end = Math.min(start + rowsPerPage, rows.length);
                 for (let i = start; i < end; i++) {
                     rows[i].style.display = '';
                 }
-
                 prevBtn.disabled = page === 1;
                 nextBtn.disabled = page === totalPages;
-
                 updatePageNumbers(page);
             }
 
             function updatePageNumbers(activePage) {
                 pageNumbersDiv.innerHTML = '';
-                
                 let start = Math.max(1, activePage - 2);
                 let end = Math.min(totalPages, activePage + 2);
-                
-                if (activePage <= 3) {
-                    end = Math.min(totalPages, 5);
-                }
-                if (activePage >= totalPages - 2) {
-                    start = Math.max(1, totalPages - 4);
-                }
+                if (activePage <= 3) end = Math.min(totalPages, 5);
+                if (activePage >= totalPages - 2) start = Math.max(1, totalPages - 4);
 
                 for (let i = start; i <= end; i++) {
                     const btn = document.createElement('button');
@@ -537,7 +453,7 @@
         })();
     </script>
 
-    <!-- NUEVO: Script para el badge de chat -->
+    <!-- Script para badge de chat -->
     <script src="/socket.io/socket.io.js"></script>
     <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
     <script>                                                             
@@ -549,7 +465,6 @@
                 try {
                     const response = await fetch('/api/no-leidos');
                     const noLeidosMap = await response.json();
-                    // Sumar todos los valores (grupal + privados)
                     const total = Object.values(noLeidosMap).reduce((acc, val) => acc + val, 0);
                     const badge = document.getElementById('chatBadge');
                     if (total > 0) {                                          
