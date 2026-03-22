@@ -1,5 +1,7 @@
 // models/usuarios.js
 const pool = require("../database/db");
+const bcrypt = require("bcryptjs");
+const saltRounds = 10; // factor de costo para el hash
 
 class UsuarioModel {
     async obtenerUsuariosRechazados() {
@@ -21,16 +23,34 @@ class UsuarioModel {
     }
 
     async guardar(datos, precioDefecto = 0) {
-        // Asumimos que el rol por defecto es 'usuario'. Para crear 'gabriel' habría que modificar.
+        const hash = await bcrypt.hash(datos.contraseña, saltRounds);
         const sql = "INSERT INTO usuarios (nombre, gmail, contraseña, rol, estado_permiso, precio_bidon) VALUES (?, ?, ?, 'usuario', 'pendiente', ?)";
-        const [result] = await pool.query(sql, [datos.nombre, datos.gmail, datos.contraseña, precioDefecto]);
+        const [result] = await pool.query(sql, [datos.nombre, datos.gmail, hash, precioDefecto]);
         return result;
     }
 
     async validarUsuario(gmail, contraseña) {
-        const sql = "SELECT * FROM usuarios WHERE gmail = ? AND contraseña = ?";
-        const [rows] = await pool.query(sql, [gmail, contraseña]);
-        return rows.length > 0 ? rows[0] : null;
+        const sql = "SELECT * FROM usuarios WHERE gmail = ?";
+        const [rows] = await pool.query(sql, [gmail]);
+        if (rows.length === 0) return null;
+
+        const usuario = rows[0];
+        let match = false;
+
+        // Detectar si la contraseña almacenada es un hash bcrypt (empieza con $2a$ o $2b$)
+        if (usuario.contraseña.startsWith('$2a$') || usuario.contraseña.startsWith('$2b$')) {
+            match = await bcrypt.compare(contraseña, usuario.contraseña);
+        } else {
+            // Contraseña en texto plano: comparación directa y migración automática
+            match = (contraseña === usuario.contraseña);
+            if (match) {
+                const hash = await bcrypt.hash(contraseña, saltRounds);
+                await pool.query('UPDATE usuarios SET contraseña = ? WHERE id = ?', [hash, usuario.id]);
+                console.log(`Contraseña migrada a hash para usuario ${usuario.id}`);
+            }
+        }
+
+        return match ? usuario : null;
     }
 
     async obtenerUsuario(id) {
@@ -66,7 +86,7 @@ class UsuarioModel {
         return result;
     }
 
-    // Métodos para clientes (se mantienen por compatibilidad)
+    // Métodos para clientes (se mantienen igual)
     async obtenerClientePorId(id) {
         const sql = "SELECT * FROM clientes WHERE id = ?";
         const [rows] = await pool.query(sql, [id]);
