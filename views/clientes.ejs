@@ -15,11 +15,54 @@
             border-radius: 5px;
             font-size: 16px;
         }
+
+        /* Estilo para el botón de guardar */
+        button[type="submit"] {
+            background: linear-gradient(135deg, rgb(0, 0, 128), #1a1aff);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        button[type="submit"]:hover {
+            background: linear-gradient(135deg, #1a1aff, rgb(0, 0, 128));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 128, 0.3);
+        }
+
+        /* Estilo para mensajes de error */
+        .error-message {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        input.error {
+            border-color: #f44336;
+            border-width: 2px;
+        }
+
+        input.error:focus {
+            border-color: #f44336;
+            box-shadow: 0 0 5px rgba(244, 67, 54, 0.3);
+        }
     </style>
 </head>  
 <body>  
    <main>  
-    <form action="/clientes" method="POST">  
+    <form action="/clientes" method="POST" id="clienteForm">  
         <h2>Agregar Cliente</h2>
         <input type="text" name="nombre" placeholder="Nombre" required>  
         <input type="text" name="direccion" placeholder="Dirección" required>  
@@ -27,11 +70,15 @@
         <input 
             type="tel" 
             name="telefono" 
-            placeholder="Teléfono (solo números)" 
-            pattern="[0-9]+" 
-            title="Por favor, ingrese solo números"
+            id="telefono"
+            placeholder="Teléfono (10 u 11 números)" 
+            pattern="[0-9]{10,11}" 
+            maxlength="11"
+            minlength="10"
+            title="Por favor, ingrese 10 u 11 números (solo dígitos)"
             required
         >
+        <div id="telefono-error" class="error-message">El teléfono debe tener 10 u 11 números.</div>
 
         <!-- Campo día de reparto solo visible para usuario gabriel -->
         <% if (usuario && usuario.rol === 'gabriel') { %>
@@ -50,6 +97,73 @@
         
         <button type="submit">Guardar Cliente</button>  
     </form>  
-</main>
+   </main>
+
+   <script>
+        const telefonoInput = document.getElementById('telefono');
+        const errorDiv = document.getElementById('telefono-error');
+        const form = document.getElementById('clienteForm');
+
+        // Función para validar el teléfono
+        function validarTelefono() {
+            const valor = telefonoInput.value.trim();
+            // Eliminar cualquier caracter que no sea número
+            const soloNumeros = valor.replace(/\D/g, '');
+            
+            if (soloNumeros.length === 0) {
+                errorDiv.classList.remove('show');
+                telefonoInput.classList.remove('error');
+                return false;
+            }
+            
+            if (soloNumeros.length === 10 || soloNumeros.length === 11) {
+                errorDiv.classList.remove('show');
+                telefonoInput.classList.remove('error');
+                return true;
+            } else {
+                errorDiv.classList.add('show');
+                telefonoInput.classList.add('error');
+                return false;
+            }
+        }
+
+        // Validar mientras el usuario escribe
+        telefonoInput.addEventListener('input', function(e) {
+            // Permitir solo números
+            this.value = this.value.replace(/\D/g, '');
+            
+            // Limitar a 11 caracteres
+            if (this.value.length > 11) {
+                this.value = this.value.slice(0, 11);
+            }
+            
+            validarTelefono();
+        });
+
+        // Validar al perder el foco
+        telefonoInput.addEventListener('blur', function() {
+            validarTelefono();
+        });
+
+        // Validar antes de enviar el formulario
+        form.addEventListener('submit', function(e) {
+            if (!validarTelefono()) {
+                e.preventDefault();
+                alert('El número de teléfono debe tener 10 u 11 dígitos.');
+                telefonoInput.focus();
+            }
+        });
+
+        // Validación adicional para evitar caracteres no numéricos en pegado
+        telefonoInput.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                this.value = this.value.replace(/\D/g, '');
+                if (this.value.length > 11) {
+                    this.value = this.value.slice(0, 11);
+                }
+                validarTelefono();
+            }, 0);
+        });
+   </script>
 </body>  
 </html>

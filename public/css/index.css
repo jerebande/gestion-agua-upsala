@@ -202,34 +202,16 @@ header {
     line-height: 1.5;
 }
 
-/* ===== BOTÓN GESTIONAR MEJORADO ===== */
+/* ===== BOTÓN GESTIONAR - ESTILO ORIGINAL ===== */
 .ver-detalle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    display: inline-block;
     margin-top: 10px;
-    padding: 8px 16px;
-    background: linear-gradient(135deg, rgb(0, 0, 128), #1a1aff);
+    padding: 5px 10px;
+    background-color: rgb(0, 0, 128);
     color: #fff;
     text-decoration: none;
-    border-radius: 25px;
+    border-radius: 5px;
     font-weight: bold;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
-    width: 100%;
-}
-
-.ver-detalle:hover {
-    background: linear-gradient(135deg, #1a1aff, rgb(0, 0, 128));
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 128, 0.3);
-}
-
-.ver-detalle i {
-    font-size: 14px;
 }
 
 .search-container {
