@@ -477,8 +477,10 @@
                                 </a>
                             </p>                                                       
     
-                            <!-- CAMBIO: Añadimos ?dia=... para usuario gabriel -->
-                            <a href="/clientes/<%= cliente.id %><%= usuarioRol === 'gabriel' ? '?dia=' + diaSeleccionado : '' %>" class="ver-detalle">Ver detalles</a>
+                            <!-- CAMBIO: Texto mejorado "Gestionar" con ícono -->
+                            <a href="/clientes/<%= cliente.id %><%= usuarioRol === 'gabriel' ? '?dia=' + diaSeleccionado : '' %>" class="ver-detalle">
+                                <i class="fas fa-eye"></i> Gestionar
+                            </a>
                             
                             <!-- Botón de tres puntos y menú flotante -->
                             <button class="menu-cliente" onclick="toggleMenu(this)">&#x22EE;</button>
@@ -980,5 +982,5 @@
             if (e.target === this) cerrarModalVenta();
         });
     </script>
-</body>
+</body> 
 </html>

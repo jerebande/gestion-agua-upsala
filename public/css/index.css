@@ -3,6 +3,7 @@
     margin: 0;
     box-sizing: border-box;
 }
+
 .direccion {
     display: flex;         
     align-items: center;  
@@ -22,14 +23,17 @@
     overflow: hidden;     
     text-overflow: ellipsis; 
 }
-.telefono{
+
+.telefono {
     color: green;
 }
+
 body {
     font-family: Arial, sans-serif;
 }
+
 .cliente-card {
-    position: relative; /* Añadido para que el botón se posicione relativo a esta tarjeta */
+    position: relative;
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -42,9 +46,9 @@ body {
 }
 
 .menu-cliente {
-    position: absolute; /* Posiciona los tres puntos dentro de la tarjeta */
-    top: 10px; /* Distancia desde la parte superior */
-    right: 10px; /* Distancia desde la parte derecha */
+    position: absolute;
+    top: 10px;
+    right: 10px;
     background: none;
     border: none;
     font-size: 18px;
@@ -54,12 +58,12 @@ body {
 }
 
 .menu-cliente:hover {
-    color: #000; /* Cambia el color al pasar el mouse */
+    color: #000;
 }
 
 .eliminar-cliente {
     position: absolute;
-    top: 40px; /* Justo debajo de los tres puntos */
+    top: 40px;
     right: 10px;
     background: #ff0a0a;
     border: none;
@@ -81,7 +85,7 @@ header {
     width: 100%;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     padding: 0 20px;
-    z-index: 1000; /* keep header above other elements */
+    z-index: 1000;
 }
 
 .menu-icon {
@@ -125,10 +129,8 @@ header {
     text-decoration: none;
     color: white;
     text-align: center;
-    /* flexible padding to accommodate longer labels */
     padding: 8px 18px;
     background: linear-gradient(45deg, #142bdd, #f1f1f1);
-    /* allow the arrow to size based on content instead of fixed box */
     width: auto;
     height: auto;
     display: inline-flex;
@@ -138,8 +140,8 @@ header {
     font-size: 16px;
     font-weight: bold;
     box-shadow: 0 4px 15px rgba(51, 0, 255, 0.5);
-    white-space: nowrap;          /* prevent breaking between words */
-    letter-spacing: normal;       /* override any inherited spacing */
+    white-space: nowrap;
+    letter-spacing: normal;
 }
 
 .show {
@@ -147,6 +149,7 @@ header {
     flex-direction: column;
     gap: 10px;
 }
+
 .registroinicio span {
     display: flex;
     font-size: 20px;
@@ -157,6 +160,7 @@ header {
     color: rgb(255, 255, 255); 
     font-weight: bold;
 }
+
 .main-container {
     transition: margin-top 0.3s ease;
     display: flex;
@@ -183,13 +187,10 @@ header {
     max-width: 1200px;
 }
 
-
-
 .cliente-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
 }
-
 
 .nav-menu.show + .main-container {
     margin-top: calc(50px + 60px); 
@@ -200,53 +201,70 @@ header {
     font-size: 16px;
     line-height: 1.5;
 }
+
+/* ===== BOTÓN GESTIONAR MEJORADO ===== */
 .ver-detalle {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     margin-top: 10px;
-    padding: 5px 10px;
-    background-color: rgb(0, 0, 128);;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, rgb(0, 0, 128), #1a1aff);
     color: #fff;
     text-decoration: none;
-    border-radius: 5px;
+    border-radius: 25px;
     font-weight: bold;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    width: 100%;
 }
+
+.ver-detalle:hover {
+    background: linear-gradient(135deg, #1a1aff, rgb(0, 0, 128));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 128, 0.3);
+}
+
+.ver-detalle i {
+    font-size: 14px;
+}
+
 .search-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 20px auto ;
+    margin: 20px auto;
     margin-bottom: 30px;
 }
 
-/* Estilo del campo de entrada */
 .search-input {
     flex: 1;
     padding: 10px 20px;
     font-size: 16px;
-   border: 1px solid black;
+    border: 1px solid black;
     border-radius: 10px;
     outline: none;
-    background-color: #fff; /* Fondo blanco */
-    color: #333; /* Texto oscuro */
+    background-color: #fff;
+    color: #333;
     transition: box-shadow 0.3s ease-in-out;
 }
 
-
-
-/* Estilo del botón de búsqueda */
 .search-button {
     padding: 10px 20px;
     font-size: 16px;
     margin-left: 10px;
     background-color: rgb(0, 0, 128);
-    color: #fff; /* Texto blanco */
+    color: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s ease-in-out, transform 0.2s ease;
 }
 
-
+/* ===== BOTÓN FLOTANTE "+" MEJORADO ===== */
 .agregarcliente {
     position: fixed;
     bottom: 40px;
@@ -255,18 +273,47 @@ header {
 }
 
 .agregarcliente a {
-    text-decoration: none; /* Elimina subrayado del enlace */
-    color: #002afc; /* Color del icono */
-    font-size: 30px; /* Tamaño del icono */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    background: linear-gradient(135deg, rgb(0, 0, 128), #1a1aff);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 32px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 128, 0.4);
+    transition: all 0.3s ease;
 }
 
-
-
+.agregarcliente a:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 128, 0.6);
+    background: linear-gradient(135deg, #1a1aff, rgb(0, 0, 128));
+}
 
 .agregarcliente a i {
-    text-align: center;
-    margin-right: 10px; 
-    font-size: 25px; 
+    font-size: 28px;
+    margin: 0;
+}
+
+/* Animación de pulso para el botón + */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 0, 128, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(0, 0, 128, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 0, 128, 0);
+    }
+}
+
+.agregarcliente a {
+    animation: pulse 2s infinite;
 }
 
 .pagination {
@@ -286,10 +333,8 @@ header {
     transition: background-color 0.3s ease;
 }
 
-
-
 .pagination a.active {
-    background-color:rgb(0, 0, 128);
+    background-color: rgb(0, 0, 128);
     font-weight: bold;
 }
 
@@ -301,26 +346,27 @@ header {
     transition: background-color 0.3s ease;
 }
 
-.actualizarbidon{
+.actualizarbidon {
     padding: 5px 5px;
-
     margin-left: 10px;
     background-color: rgb(0, 0, 128);
-    color: #fff; /* Texto blanco */
+    color: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
-.inputbidon{
+
+.inputbidon {
     padding: 3px;
 }
-.pagination a:hover{
-    transition:  background-color 1s ease;
-    transition: color 1s ease;
-  background-color: rgb(0, 0, 128);
-    color: #fff; 
 
+.pagination a:hover {
+    transition: background-color 1s ease;
+    transition: color 1s ease;
+    background-color: rgb(0, 0, 128);
+    color: #fff;
 }
+
 .pagination a, .pagination-arrow {
     cursor: pointer;
 }
@@ -333,8 +379,6 @@ header {
     margin-right: 0;
 }
 
-
-
 @media (max-width: 768px) {
     .menu-icon {
         display: flex;
@@ -346,7 +390,7 @@ header {
         width: 100%;
         text-align: center;
         background-color: rgb(0, 0, 128);
-        position: fixed; /* fixed to keep it in view */
+        position: fixed;
         top: 100px;
         left: 0;
         z-index: 900;
@@ -357,17 +401,15 @@ header {
     }
 }
 
-/* ===== NUEVAS REGLAS PARA EL BADGE ===== */
-/* Contenedor del enlace de chat: reserva espacio a la derecha */
+/* ===== ESTILOS PARA EL BADGE DEL CHAT ===== */
 .chat-link {
     position: relative;
-    padding-right: 28px; /* Suficiente para el badge (18px + 10px de margen) */
+    padding-right: 28px;
 }
 
-/* Badge de notificaciones: posicionado absolutamente en el espacio reservado */
 .badge-unread {
     position: absolute;
-    right: 8px;           /* Ajusta para que quede centrado en el padding-right */
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     background-color: red;
@@ -378,5 +420,5 @@ header {
     min-width: 18px;
     text-align: center;
     box-sizing: border-box;
-    margin-left: 0;       /* Anula cualquier margen izquierdo heredado */
+    margin-left: 0;
 }
