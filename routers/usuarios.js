@@ -3,55 +3,66 @@ const router = express.Router();
 const UsuarioController = require("../controllers/usuarios");
 const usuarioController = new UsuarioController();
 
-// Vista de usuarios pendientes
+// Middleware solo admin
+function soloAdmin(req, res, next) {
+    if (!req.session.usuario || req.session.usuario.rol !== 'admin') {
+        return res.status(403).redirect("/login");
+    }
+    next();
+}
+
+// =============================================
+// GESTIÓN DE USUARIOS (NUEVO)
+// =============================================
+router.get("/admin/usuarios", soloAdmin, (req, res) => usuarioController.mostrarGestionUsuarios(req, res));
+router.post("/admin/bloquear-usuario/:id", soloAdmin, (req, res) => usuarioController.bloquearUsuario(req, res));
+router.post("/admin/desbloquear-usuario/:id", soloAdmin, (req, res) => usuarioController.desbloquearUsuario(req, res));
+router.post("/admin/eliminar-usuario/:id", soloAdmin, (req, res) => usuarioController.eliminarUsuario(req, res));
+
+// =============================================
+// INVITACIONES
+// =============================================
 router.get("/admin/invitaciones", (req, res) => usuarioController.verInvitaciones(req, res));
 
-// Aceptar usuario (cambia estado a 'aceptado')
-router.post("/admin/aceptar-usuario/:id", (req, res) => {
+router.post("/admin/aceptar-usuario/:id", soloAdmin, (req, res) => {
     req.body.accion = 'aceptado';
     usuarioController.procesarInvitacion(req, res);
 });
 
-// Rechazar usuario (cambia estado a 'rechazado')
-router.post("/admin/rechazar-usuario/:id", (req, res) => {
+router.post("/admin/rechazar-usuario/:id", soloAdmin, (req, res) => {
     req.body.accion = 'rechazado';
     usuarioController.procesarInvitacion(req, res);
 });
 
-// Ruta principal (home) - debe estar autenticado
+// =============================================
+// HOME
+// =============================================
 router.get("/home", (req, res) => {
-    // Verificar si el usuario está en sesión
-    if (!req.session.usuario) {
-        return res.redirect("/login");
-    }
-    // Llamar al controlador que se encarga de obtener los clientes y renderizar
+    if (!req.session.usuario) return res.redirect("/login");
     usuarioController.home(req, res);
 });
 
-// Ruta de registro (POST)
+// =============================================
+// AUTH
+// =============================================
 router.post("/registro", (req, res) => usuarioController.guardarUsuario(req, res));
 
-// Ruta de login (GET)
 router.get("/login", (req, res) => {
-    res.render("login");
+    if (req.session.usuario) return res.redirect("/home");
+    res.render("login", { error: null });
 });
 
-// Ruta de logout
 router.get("/logout", (req, res) => {
     req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).send("No se pudo cerrar sesión.");
-        }
+        if (err) return res.status(500).send("No se pudo cerrar sesión.");
         res.redirect("/login");
     });
 });
 
-// Ruta de registro (GET)
 router.get("/registro", (req, res) => {
-    res.render("crearcuenta");
+    res.render("crearcuenta", { error: null });
 });
 
-// Ruta de login (POST)
 router.post("/login", (req, res) => usuarioController.loginUsuario(req, res));
 
 module.exports = router;

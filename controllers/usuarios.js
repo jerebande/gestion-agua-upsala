@@ -4,9 +4,10 @@ const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
 const ConfiguracionModel = require("../models/configuracion");
 const configuracionModel = new ConfiguracionModel();
-const { obtenerFechaLocal, obtenerLunesSemanaActual } = require("../utils/fecha"); // <-- NUEVO
+const { obtenerFechaLocal, obtenerLunesSemanaActual } = require("../utils/fecha");
 
 class UsuarioController {
+
     async mostrarInvitaciones(req, res) {
         try {
             const usuariosPendientes = await usuarioModel.obtenerUsuariosPendientes();
@@ -40,38 +41,31 @@ class UsuarioController {
             if (rol === 'gabriel') {
                 diaSeleccionado = dia || 'lunes';
                 todosLosClientes = await clienteModel.obtenerClientesFiltrados(usuarioId, filtro, diaSeleccionado);
-                // Usar fecha local
-                const fechaHoy = obtenerFechaLocal(); // <-- MODIFICADO
+                const fechaHoy = obtenerFechaLocal();
                 for (let cliente of todosLosClientes) {
                     cliente.totalFiadoHoy = await clienteModel.obtenerTotalFiadoPorClienteYFecha(cliente.id, fechaHoy);
-                    // Solo para gabriel se calcula el total general de fiado
                     cliente.totalFiadoGeneral = await clienteModel.obtenerTotalFiadoGeneral(cliente.id);
                 }
             } else {
-                // Para otros roles no se necesita el total general de fiado
                 todosLosClientes = filtro 
                     ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
                     : await clienteModel.obtenerClientesPorUsuario(usuarioId);
             }
 
-            // Obtener estado semanal actual solo para rol gabriel
             let estadosSemanales = {};
             if (rol === 'gabriel') {
-                const semanaStr = obtenerLunesSemanaActual(); // <-- MODIFICADO
+                const semanaStr = obtenerLunesSemanaActual();
                 estadosSemanales = await clienteModel.obtenerEstadosSemanalesPorUsuarioYSemana(usuarioId, semanaStr);
             }
 
-            // --- Obtener entregas del día y mapear a TODOS los clientes ---
-            const fechaHoy = obtenerFechaLocal(); // <-- MODIFICADO
+            const fechaHoy = obtenerFechaLocal();
             const entregasHoyIds = await clienteModel.obtenerEntregasHoy(usuarioId, fechaHoy);
 
-            // Mapear propiedad entrega_hoy a cada cliente en todosLosClientes
             todosLosClientes = todosLosClientes.map(cliente => ({
                 ...cliente,
                 entrega_hoy: entregasHoyIds.includes(cliente.id)
             }));
 
-            // Ordenar TODOS los clientes: primero los que tienen entrega_hoy = true, luego por nombre
             todosLosClientes.sort((a, b) => {
                 if (a.entrega_hoy === b.entrega_hoy) {
                     return (a.nombre || '').localeCompare(b.nombre || '');
@@ -99,7 +93,7 @@ class UsuarioController {
                 totalPaginas,
                 diaSeleccionado,
                 estadosSemanales,
-                 precioActual
+                precioActual
             });
         } catch (error) {
             console.error("Error en home:", error);
@@ -112,17 +106,19 @@ class UsuarioController {
         if (req.session.usuario.rol !== 'admin') {
             return res.status(403).send("Acceso denegado");
         }
-
         try {
             const usuariosPendientes = await usuarioModel.obtenerUsuariosPendientes();
             const usuariosRechazados = await usuarioModel.obtenerUsuariosRechazados();
+            const flash = req.session.flash || null;
+            req.session.flash = null;
 
             res.render("invitaciones", { 
                 usuariosPendientes, 
                 usuariosRechazados,
                 nombreUsuario: req.session.usuario.nombre,
                 usuarioRol: req.session.usuario.rol,
-                usuarioId: req.session.usuario.id
+                usuarioId: req.session.usuario.id,
+                flash
             });
         } catch (error) {
             console.error("Error al obtener invitaciones:", error);
@@ -137,6 +133,10 @@ class UsuarioController {
         const { id } = req.params;
         const { accion } = req.body;
         await usuarioModel.actualizarPermiso(id, accion);
+        req.session.flash = { 
+            tipo: 'success', 
+            mensaje: accion === 'aceptado' ? 'Usuario aceptado correctamente.' : 'Usuario rechazado.' 
+        };
         res.redirect("/admin/invitaciones");
     }
 
@@ -147,6 +147,7 @@ class UsuarioController {
         const { id } = req.params;
         try {
             await usuarioModel.actualizarPermiso(id, 'rechazado');
+            req.session.flash = { tipo: 'success', mensaje: 'Usuario rechazado correctamente.' };
             res.redirect("/admin/invitaciones");
         } catch (error) {
             res.status(500).send("Error al rechazar");
@@ -169,9 +170,7 @@ class UsuarioController {
                     error: "El correo ya está en uso" 
                 });
             }
-
             const precioDefecto = await configuracionModel.obtenerPrecioBidon();
-
             await usuarioModel.guardar({ nombre, gmail, contraseña }, precioDefecto);
             res.redirect("/login");
         } catch (error) {
@@ -194,6 +193,13 @@ class UsuarioController {
             
             if (!usuario) {  
                 return res.status(401).render("login", { error: "Credenciales incorrectas." });  
+            }
+
+            // Bloqueo
+            if (usuario.estado_permiso === 'bloqueado') {
+                return res.status(403).render("login", { 
+                    error: "Tu cuenta ha sido bloqueada. Contactá al administrador." 
+                });
             }
 
             if (usuario.rol === 'usuario') {
@@ -236,13 +242,104 @@ class UsuarioController {
             if (!cliente) {
                 return res.status(404).json({ error: "Cliente no encontrado o no tiene permiso" });
             }
-
             await clienteModel.actualizarDatosBasicos(id, { nombre, direccion, telefono });
             res.json({ success: true });
         } catch (error) {
             console.error("Error al actualizar cliente:", error);
             res.status(500).json({ error: "Error del servidor" });
         }
+    }
+
+    // =============================================
+    // GESTIÓN DE USUARIOS (NUEVO)
+    // =============================================
+
+    async mostrarGestionUsuarios(req, res) {
+        if (!req.session.usuario || req.session.usuario.rol !== 'admin') {
+            return res.redirect("/login");
+        }
+        try {
+            const todosLosUsuarios = await usuarioModel.obtenerTodosLosUsuarios();
+            const stats = await usuarioModel.obtenerEstadisticas();
+            const usuariosPendientes = await usuarioModel.obtenerUsuariosPendientes();
+            const usuariosBloqueadosList = todosLosUsuarios.filter(u => u.estado_permiso === 'bloqueado');
+
+            const flash = req.session.flash || null;
+            req.session.flash = null;
+
+            res.render("gestionar-usuarios", {
+                todosLosUsuarios,
+                usuariosPendientes,
+                usuariosBloqueadosList,
+                totalUsuarios: parseInt(stats.total) || 0,
+                usuariosActivos: parseInt(stats.activos) || 0,
+                usuariosBloqueados: parseInt(stats.bloqueados) || 0,
+                nombreUsuario: req.session.usuario.nombre,
+                usuarioRol: req.session.usuario.rol,
+                usuarioId: req.session.usuario.id,
+                flash
+            });
+        } catch (error) {
+            console.error("Error al obtener usuarios:", error);
+            res.status(500).send("Error del servidor");
+        }
+    }
+
+    async bloquearUsuario(req, res) {
+        if (!req.session.usuario || req.session.usuario.rol !== 'admin') {
+            return res.redirect("/login");
+        }
+        const { id } = req.params;
+        if (parseInt(id) === req.session.usuario.id) {
+            req.session.flash = { tipo: 'error', mensaje: 'No podés bloquearte a vos mismo.' };
+            return res.redirect("/admin/usuarios");
+        }
+        try {
+            await usuarioModel.bloquearUsuario(id);
+            req.session.flash = { tipo: 'success', mensaje: 'Usuario bloqueado correctamente.' };
+        } catch (error) {
+            console.error("Error al bloquear usuario:", error);
+            req.session.flash = { tipo: 'error', mensaje: 'Error al bloquear usuario.' };
+        }
+        res.redirect("/admin/usuarios");
+    }
+
+    async desbloquearUsuario(req, res) {
+        if (!req.session.usuario || req.session.usuario.rol !== 'admin') {
+            return res.redirect("/login");
+        }
+        const { id } = req.params;
+        try {
+            await usuarioModel.desbloquearUsuario(id);
+            req.session.flash = { tipo: 'success', mensaje: 'Usuario desbloqueado. Ya puede iniciar sesión.' };
+        } catch (error) {
+            console.error("Error al desbloquear usuario:", error);
+            req.session.flash = { tipo: 'error', mensaje: 'Error al desbloquear usuario.' };
+        }
+        res.redirect("/admin/usuarios");
+    }
+
+    async eliminarUsuario(req, res) {
+        if (!req.session.usuario || req.session.usuario.rol !== 'admin') {
+            return res.redirect("/login");
+        }
+        const { id } = req.params;
+        if (parseInt(id) === req.session.usuario.id) {
+            req.session.flash = { tipo: 'error', mensaje: 'No podés eliminar tu propia cuenta.' };
+            return res.redirect("/admin/usuarios");
+        }
+        try {
+            const result = await usuarioModel.eliminarUsuario(id);
+            if (result.affectedRows === 0) {
+                req.session.flash = { tipo: 'warning', mensaje: 'No se encontró el usuario o es administrador.' };
+            } else {
+                req.session.flash = { tipo: 'success', mensaje: 'Usuario eliminado permanentemente.' };
+            }
+        } catch (error) {
+            console.error("Error al eliminar usuario:", error);
+            req.session.flash = { tipo: 'error', mensaje: 'Error al eliminar usuario.' };
+        }
+        res.redirect("/admin/usuarios");
     }
 }
 

@@ -1,9 +1,9 @@
-// models/usuarios.js
 const pool = require("../database/db");
 const bcrypt = require("bcryptjs");
-const saltRounds = 10; // factor de costo para el hash
+const saltRounds = 10;
 
 class UsuarioModel {
+
     async obtenerUsuariosRechazados() {
         const sql = "SELECT id, nombre, gmail, estado_permiso FROM usuarios WHERE rol = 'usuario' AND estado_permiso = 'rechazado'";
         const [rows] = await pool.query(sql);
@@ -22,6 +22,61 @@ class UsuarioModel {
         return rows;
     }
 
+    // =============================================
+    // MÉTODOS NUEVOS
+    // =============================================
+
+    async obtenerTodosLosUsuarios() {
+        const sql = `
+            SELECT id, nombre, gmail, rol, estado_permiso 
+            FROM usuarios
+            ORDER BY 
+                CASE estado_permiso 
+                    WHEN 'pendiente'  THEN 0 
+                    WHEN 'bloqueado'  THEN 1 
+                    WHEN 'aceptado'   THEN 2 
+                    ELSE 3 
+                END, nombre ASC
+        `;
+        const [rows] = await pool.query(sql);
+        return rows;
+    }
+
+    async bloquearUsuario(usuarioId) {
+        const sql = "UPDATE usuarios SET estado_permiso = 'bloqueado' WHERE id = ? AND rol != 'admin'";
+        const [result] = await pool.query(sql, [usuarioId]);
+        return result;
+    }
+
+    async desbloquearUsuario(usuarioId) {
+        const sql = "UPDATE usuarios SET estado_permiso = 'aceptado' WHERE id = ? AND rol != 'admin'";
+        const [result] = await pool.query(sql, [usuarioId]);
+        return result;
+    }
+
+    async eliminarUsuario(usuarioId) {
+        const sql = "DELETE FROM usuarios WHERE id = ? AND rol != 'admin'";
+        const [result] = await pool.query(sql, [usuarioId]);
+        return result;
+    }
+
+    async obtenerEstadisticas() {
+        const sql = `
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN estado_permiso = 'aceptado'  THEN 1 ELSE 0 END) as activos,
+                SUM(CASE WHEN estado_permiso = 'bloqueado' THEN 1 ELSE 0 END) as bloqueados,
+                SUM(CASE WHEN estado_permiso = 'pendiente' THEN 1 ELSE 0 END) as pendientes
+            FROM usuarios
+        `;
+        const [rows] = await pool.query(sql);
+        return rows[0];
+    }
+
+    // =============================================
+    // MÉTODOS EXISTENTES (sin cambios)
+    // =============================================
+
     async guardar(datos, precioDefecto = 0) {
         const hash = await bcrypt.hash(datos.contraseña, saltRounds);
         const sql = "INSERT INTO usuarios (nombre, gmail, contraseña, rol, estado_permiso, precio_bidon) VALUES (?, ?, ?, 'usuario', 'pendiente', ?)";
@@ -37,11 +92,9 @@ class UsuarioModel {
         const usuario = rows[0];
         let match = false;
 
-        // Detectar si la contraseña almacenada es un hash bcrypt (empieza con $2a$ o $2b$)
         if (usuario.contraseña.startsWith('$2a$') || usuario.contraseña.startsWith('$2b$')) {
             match = await bcrypt.compare(contraseña, usuario.contraseña);
         } else {
-            // Contraseña en texto plano: comparación directa y migración automática
             match = (contraseña === usuario.contraseña);
             if (match) {
                 const hash = await bcrypt.hash(contraseña, saltRounds);
@@ -74,9 +127,7 @@ class UsuarioModel {
     async obtenerPrecioUsuario(usuarioId) {
         const sql = "SELECT precio_bidon FROM usuarios WHERE id = ?";
         const [rows] = await pool.query(sql, [usuarioId]);
-        if (rows.length > 0) {
-            return rows[0].precio_bidon;
-        }
+        if (rows.length > 0) return rows[0].precio_bidon;
         return 0;
     }
 
@@ -86,7 +137,6 @@ class UsuarioModel {
         return result;
     }
 
-    // Métodos para clientes (se mantienen igual)
     async obtenerClientePorId(id) {
         const sql = "SELECT * FROM clientes WHERE id = ?";
         const [rows] = await pool.query(sql, [id]);

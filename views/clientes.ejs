@@ -1,12 +1,14 @@
 <!DOCTYPE html>  
-<html lang="en">  
+<html lang="es">  
 <head>  
     <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-    <title>Lista de Clientes</title>  
+    <title>Agregar Cliente</title>  
     <link rel="stylesheet" href="/public/css/clientes.css">
+    <!-- AlertifyJS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
     <style>
-        /* Estilo adicional para el select */
         select {
             width: 100%;
             padding: 10px;
@@ -16,7 +18,6 @@
             font-size: 16px;
         }
 
-        /* Estilo para el botón de guardar */
         button[type="submit"] {
             background: linear-gradient(135deg, rgb(0, 0, 128), #1a1aff);
             color: white;
@@ -37,132 +38,242 @@
             box-shadow: 0 4px 15px rgba(0, 0, 128, 0.3);
         }
 
-        /* Estilo para mensajes de error */
+        button[type="submit"]:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .error-message {
             color: #f44336;
             font-size: 12px;
-            margin-top: 5px;
+            margin-top: 3px;
+            margin-bottom: 5px;
             display: none;
         }
 
-        .error-message.show {
-            display: block;
-        }
+        .error-message.show { display: block; }
 
-        input.error {
-            border-color: #f44336;
+        input.error, select.error {
+            border-color: #f44336 !important;
             border-width: 2px;
         }
 
-        input.error:focus {
-            border-color: #f44336;
-            box-shadow: 0 0 5px rgba(244, 67, 54, 0.3);
+        input.valid, select.valid {
+            border-color: #4caf50 !important;
         }
+
+        .field-group { margin-bottom: 8px; }
+
+        .char-counter {
+            font-size: 11px;
+            color: #aaa;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        .char-counter.near-limit { color: #f0ad4e; }
+        .char-counter.at-limit { color: #f44336; }
     </style>
 </head>  
 <body>  
    <main>  
-    <form action="/clientes" method="POST" id="clienteForm">  
+    <form action="/clientes" method="POST" id="clienteForm" novalidate>  
         <h2>Agregar Cliente</h2>
-        <input type="text" name="nombre" placeholder="Nombre" required>  
-        <input type="text" name="direccion" placeholder="Dirección" required>  
-        
-        <input 
-            type="tel" 
-            name="telefono" 
-            id="telefono"
-            placeholder="Teléfono (10 u 11 números)" 
-            pattern="[0-9]{10,11}" 
-            maxlength="11"
-            minlength="10"
-            title="Por favor, ingrese 10 u 11 números (solo dígitos)"
-            required
-        >
-        <div id="telefono-error" class="error-message">El teléfono debe tener 10 u 11 números.</div>
+
+        <div class="field-group">
+            <input type="text" name="nombre" id="nombre"
+                placeholder="Nombre completo"
+                maxlength="60"
+                autocomplete="off">
+            <div class="char-counter" id="nombreCounter">0 / 60</div>
+            <div id="nombre-error" class="error-message">El nombre es obligatorio (2 a 60 caracteres).</div>
+        </div>
+
+        <div class="field-group">
+            <input type="text" name="direccion" id="direccion"
+                placeholder="Dirección"
+                maxlength="100"
+                autocomplete="off">
+            <div class="char-counter" id="direccionCounter">0 / 100</div>
+            <div id="direccion-error" class="error-message">La dirección es obligatoria.</div>
+        </div>
+
+        <div class="field-group">
+            <input 
+                type="tel" 
+                name="telefono" 
+                id="telefono"
+                placeholder="Teléfono (10 u 11 dígitos)" 
+                maxlength="11"
+                autocomplete="off"
+            >
+            <div id="telefono-error" class="error-message">El teléfono debe tener 10 u 11 dígitos numéricos.</div>
+        </div>
 
         <!-- Campo día de reparto solo visible para usuario gabriel -->
         <% if (usuario && usuario.rol === 'gabriel') { %>
-            <label for="dia_reparto">Día de reparto</label>
-            <select name="dia_reparto" id="dia_reparto" required>
-                <option value="">Seleccione un día</option>
-                <option value="lunes">Lunes</option>
-                <option value="martes">Martes</option>
-                <option value="miércoles">Miércoles</option>
-                <option value="jueves">Jueves</option>
-                <option value="viernes">Viernes</option>
-                <option value="sábado">Sábado</option>
-                <option value="domingo">Domingo</option>
-            </select>
+            <div class="field-group">
+                <label for="dia_reparto" style="font-size:14px;color:#555;">Día de reparto</label>
+                <select name="dia_reparto" id="dia_reparto">
+                    <option value="">Seleccione un día</option>
+                    <option value="lunes">Lunes</option>
+                    <option value="martes">Martes</option>
+                    <option value="miércoles">Miércoles</option>
+                    <option value="jueves">Jueves</option>
+                    <option value="viernes">Viernes</option>
+                    <option value="sábado">Sábado</option>
+                    <option value="domingo">Domingo</option>
+                </select>
+                <div id="dia-error" class="error-message">Seleccioná un día de reparto.</div>
+            </div>
         <% } %>
         
-        <button type="submit">Guardar Cliente</button>  
+        <button type="submit" id="btnGuardar">
+            <i class="fas fa-save" style="margin-right:6px;"></i> Guardar Cliente
+        </button>
     </form>  
    </main>
 
+   <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
    <script>
-        const telefonoInput = document.getElementById('telefono');
-        const errorDiv = document.getElementById('telefono-error');
-        const form = document.getElementById('clienteForm');
+        alertify.defaults.transition = "slide";
 
-        // Función para validar el teléfono
+        // ---- Helpers ----
+        function mostrarError(inputId, errorId) {
+            const input = document.getElementById(inputId);
+            const err = document.getElementById(errorId);
+            if (input) input.classList.add('error');
+            if (input) input.classList.remove('valid');
+            if (err) err.classList.add('show');
+        }
+
+        function limpiarError(inputId, errorId) {
+            const input = document.getElementById(inputId);
+            const err = document.getElementById(errorId);
+            if (input) input.classList.remove('error');
+            if (input) input.classList.add('valid');
+            if (err) err.classList.remove('show');
+        }
+
+        // ---- Nombre ----
+        const nombreInput = document.getElementById('nombre');
+        const nombreCounter = document.getElementById('nombreCounter');
+
+        if (nombreInput) {
+            nombreInput.addEventListener('input', function() {
+                const len = this.value.trim().length;
+                nombreCounter.textContent = `${this.value.length} / 60`;
+                nombreCounter.className = 'char-counter' + (this.value.length >= 55 ? ' near-limit' : '') + (this.value.length >= 60 ? ' at-limit' : '');
+                if (len >= 2) limpiarError('nombre', 'nombre-error');
+            });
+            nombreInput.addEventListener('blur', function() {
+                if (this.value.trim().length < 2) mostrarError('nombre', 'nombre-error');
+            });
+        }
+
+        // ---- Dirección ----
+        const direccionInput = document.getElementById('direccion');
+        const direccionCounter = document.getElementById('direccionCounter');
+
+        if (direccionInput) {
+            direccionInput.addEventListener('input', function() {
+                direccionCounter.textContent = `${this.value.length} / 100`;
+                if (this.value.trim().length > 0) limpiarError('direccion', 'direccion-error');
+            });
+            direccionInput.addEventListener('blur', function() {
+                if (this.value.trim().length === 0) mostrarError('direccion', 'direccion-error');
+            });
+        }
+
+        // ---- Teléfono ----
+        const telefonoInput = document.getElementById('telefono');
+
         function validarTelefono() {
-            const valor = telefonoInput.value.trim();
-            // Eliminar cualquier caracter que no sea número
-            const soloNumeros = valor.replace(/\D/g, '');
-            
-            if (soloNumeros.length === 0) {
-                errorDiv.classList.remove('show');
-                telefonoInput.classList.remove('error');
+            const val = telefonoInput.value.replace(/\D/g, '');
+            if (val.length === 0) {
+                document.getElementById('telefono-error').classList.remove('show');
+                telefonoInput.classList.remove('error', 'valid');
                 return false;
             }
-            
-            if (soloNumeros.length === 10 || soloNumeros.length === 11) {
-                errorDiv.classList.remove('show');
-                telefonoInput.classList.remove('error');
+            if (val.length === 10 || val.length === 11) {
+                limpiarError('telefono', 'telefono-error');
                 return true;
             } else {
-                errorDiv.classList.add('show');
-                telefonoInput.classList.add('error');
+                mostrarError('telefono', 'telefono-error');
                 return false;
             }
         }
 
-        // Validar mientras el usuario escribe
-        telefonoInput.addEventListener('input', function(e) {
-            // Permitir solo números
-            this.value = this.value.replace(/\D/g, '');
-            
-            // Limitar a 11 caracteres
-            if (this.value.length > 11) {
-                this.value = this.value.slice(0, 11);
-            }
-            
-            validarTelefono();
-        });
-
-        // Validar al perder el foco
-        telefonoInput.addEventListener('blur', function() {
-            validarTelefono();
-        });
-
-        // Validar antes de enviar el formulario
-        form.addEventListener('submit', function(e) {
-            if (!validarTelefono()) {
-                e.preventDefault();
-                alert('El número de teléfono debe tener 10 u 11 dígitos.');
-                telefonoInput.focus();
-            }
-        });
-
-        // Validación adicional para evitar caracteres no numéricos en pegado
-        telefonoInput.addEventListener('paste', function(e) {
-            setTimeout(() => {
+        if (telefonoInput) {
+            telefonoInput.addEventListener('input', function() {
                 this.value = this.value.replace(/\D/g, '');
-                if (this.value.length > 11) {
-                    this.value = this.value.slice(0, 11);
-                }
+                if (this.value.length > 11) this.value = this.value.slice(0, 11);
                 validarTelefono();
-            }, 0);
+            });
+            telefonoInput.addEventListener('blur', validarTelefono);
+            telefonoInput.addEventListener('paste', function() {
+                setTimeout(() => {
+                    this.value = this.value.replace(/\D/g, '').slice(0, 11);
+                    validarTelefono();
+                }, 0);
+            });
+        }
+
+        // ---- Día de reparto (si existe) ----
+        const diaSelect = document.getElementById('dia_reparto');
+        if (diaSelect) {
+            diaSelect.addEventListener('change', function() {
+                if (this.value) limpiarError('dia_reparto', 'dia-error');
+            });
+        }
+
+        // ---- Submit ----
+        const form = document.getElementById('clienteForm');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            let valido = true;
+
+            // Nombre
+            const nombre = document.getElementById('nombre').value.trim();
+            if (nombre.length < 2) {
+                mostrarError('nombre', 'nombre-error');
+                valido = false;
+            }
+
+            // Dirección
+            const direccion = document.getElementById('direccion').value.trim();
+            if (direccion.length === 0) {
+                mostrarError('direccion', 'direccion-error');
+                valido = false;
+            }
+
+            // Teléfono
+            const telVal = telefonoInput.value.replace(/\D/g, '');
+            if (telVal.length === 0) {
+                mostrarError('telefono', 'telefono-error');
+                valido = false;
+            } else if (telVal.length !== 10 && telVal.length !== 11) {
+                mostrarError('telefono', 'telefono-error');
+                valido = false;
+            }
+
+            // Día reparto (si existe)
+            if (diaSelect && diaSelect.value === '') {
+                mostrarError('dia_reparto', 'dia-error');
+                valido = false;
+            }
+
+            if (!valido) {
+                alertify.error('Por favor, corregí los errores antes de continuar.');
+                return;
+            }
+
+            // Todo OK: deshabilitar botón y enviar
+            document.getElementById('btnGuardar').disabled = true;
+            document.getElementById('btnGuardar').textContent = 'Guardando...';
+            this.submit();
         });
    </script>
 </body>  

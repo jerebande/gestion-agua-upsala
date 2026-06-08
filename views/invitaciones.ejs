@@ -3,84 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Usuarios | Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Invitaciones</title>
     <link rel="stylesheet" href="/public/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
     <style>
-        /* Sincronización de colores y fuentes para que sea idéntico al index */
         :root {
             --admin-blue: rgb(0, 0, 128);
             --admin-danger: #d9534f;
             --admin-success: #5cb85c;
-            --white-pure: #ffffff;
         }
 
-        /* Estilo para el badge de chat (nuevo) */
-       .badge-unread {
-    position: absolute;
-    right: 8px;           /* Ajusta para que quede centrado en el padding-right */
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: red;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    min-width: 18px;
-    text-align: center;
-    box-sizing: border-box;
-    margin-left: 0;       /* Anula cualquier margen izquierdo heredado */
-}
-
-        /* Ajuste del Header para uniformidad total */
-        header {
-            background-color: var(--admin-blue) !important;
-            height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-        }
-
-        .nav-menu a, .registroinicio span, .registroinicio a {
-            color: var(--white-pure) !important;
-            font-family: Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .nav-menu a {
-            font-size: 16px;
-            text-decoration: none;
-            padding: 10px;
-            font-weight: normal;
-        }
-
-        .registroinicio span {
-            font-size: 20px;
-            font-weight: bold;
-            font-family: 'Times New Roman', Times, serif;
-        }
-
-        /* Contenedor Principal */
         .main-container {
             padding: 40px 20px;
             max-width: 1200px;
             margin: 0 auto;
-            transition: margin-top 0.3s ease;
+            min-height: 100vh;
+            justify-content: flex-start;
         }
 
         .section-title {
-            font-size: 24px;
+            font-size: 22px;
             color: #444;
-            margin: 40px 0 20px;
+            margin: 35px 0 18px;
             text-align: left;
             border-left: 5px solid var(--admin-blue);
             padding-left: 15px;
         }
 
-        /* Grid de tarjetas moderno */
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -92,22 +43,20 @@
             background: white;
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             border: 1px solid #ddd;
-            text-align: left;
-            transition: transform 0.3s ease;
+            border-top: 4px solid var(--admin-blue);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .user-card-modern:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
         }
 
-        .btn-group-modern {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
+        .user-card-modern p { margin: 8px 0; font-size: 15px; }
+
+        .btn-group-modern { display: flex; gap: 10px; margin-top: 15px; }
 
         .btn-modern {
             flex: 1;
@@ -118,11 +67,42 @@
             font-weight: bold;
             font-size: 14px;
             transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
-        .btn-accept { background-color: var(--admin-blue); color: white; }
-        .btn-reject { background-color: #f1f1f1; color: var(--admin-danger); border: 1px solid var(--admin-danger); }
+        .btn-modern:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        .btn-accept  { background-color: var(--admin-blue); color: white; }
+        .btn-reject  { background-color: #f1f1f1; color: var(--admin-danger); border: 1px solid var(--admin-danger); }
         .btn-recover { background-color: var(--admin-success); color: white; width: 100%; }
+
+        .no-clientes { color: #aaa; text-align: center; padding: 30px; font-size: 15px; }
+
+        .admin-links-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .admin-link-btn {
+            padding: 9px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: 0.2s;
+        }
+
+        .admin-link-btn.active  { background: var(--admin-blue); color: white; }
+        .admin-link-btn.outline { background: white; color: var(--admin-blue); border: 1.5px solid var(--admin-blue); }
+        .admin-link-btn:hover   { opacity: 0.85; }
     </style>
 </head>
 <body>
@@ -133,24 +113,22 @@
             <div class="menu-icon-bar"></div>
         </div>
         <nav class="nav-menu">
-            <a href="/home">Inicio</a>                       
+            <a href="/home">Inicio</a>
             <a href="/historial/cuentas">historial</a>
             <a href="/notas">notas</a>
-            <!-- Enlace de chat con badge de notificaciones (nuevo) -->
             <a href="/chat/grupal" class="chat-link">
-                chat
+                chat                                              
                 <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
                     <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
                 <% } %>
             </a>
-               <a href="/configuracion" class="admin-link">configuración</a>
+            <a href="/configuracion" class="admin-link">configuración</a>
             <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>
-                <a href="/admin/invitaciones">Invitaciones</a>
-             
-            <% } %>                                                                                                                  
-        </nav>                                                                
+                <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
+            <% } %>
+        </nav>
         <div class="registroinicio">
-            <% if (typeof nombreUsuario !== 'undefined' && nombreUsuario) { %>
+            <% if (nombreUsuario) { %>
                 <span><%= nombreUsuario %></span>
                 <a href="/logout">Cerrar sesión</a>
             <% } else { %>
@@ -161,100 +139,131 @@
     </header>
 
     <main class="main-container">
+
+        <% if (typeof flash !== 'undefined' && flash) { %>
+            <div id="flashData" data-type="<%= flash.tipo %>" data-msg="<%= flash.mensaje %>"></div>
+        <% } %>
+
         <h1 class="main-title">Gestión de Usuarios</h1>
-        
+
+        <div class="admin-links-bar">
+            <a href="/admin/invitaciones" class="admin-link-btn active">
+                <i class="fas fa-envelope"></i> Invitaciones
+            </a>
+            <a href="/admin/usuarios" class="admin-link-btn outline">
+                <i class="fas fa-users-cog"></i> Gestionar todos
+            </a>
+        </div>
+
         <h2 class="section-title">Pendientes</h2>
         <% if (usuariosPendientes && usuariosPendientes.length > 0) { %>
             <div class="cards-grid">
                 <% usuariosPendientes.forEach(u => { %>
                     <div class="user-card-modern">
-                        <div class="user-info">
-                            <p><strong><i class="fas fa-user"></i> Nombre:</strong> <%= u.nombre %></p>
-                            <p><strong><i class="fas fa-envelope"></i> Email:</strong> <%= u.gmail %></p>
-                        </div>
+                        <p><strong><i class="fas fa-user"></i> Nombre:</strong> <%= u.nombre %></p>
+                        <p><strong><i class="fas fa-envelope"></i> Email:</strong> <%= u.gmail %></p>
                         <div class="btn-group-modern">
-                            <form action="/admin/aceptar-usuario/<%= u.id %>" method="POST" onsubmit="return confirmarAccion('aceptar')" style="flex:1">
-                                <button type="submit" class="btn-modern btn-accept">Aceptar</button>
-                            </form>
-                            <form action="/admin/rechazar-usuario/<%= u.id %>" method="POST" onsubmit="return confirmarAccion('rechazar')" style="flex:1">
-                                <button type="submit" class="btn-modern btn-reject">Rechazar</button>
-                            </form>                                                                                                                                                                                                                                                 
-                        </div>                                                                                                       
+                            <button type="button" class="btn-modern btn-accept"
+                                onclick="confirmarInvitacion('aceptar', '<%= u.id %>', '<%= u.nombre %>')">
+                                <i class="fas fa-check"></i> Aceptar
+                            </button>
+                            <button type="button" class="btn-modern btn-reject"
+                                onclick="confirmarInvitacion('rechazar', '<%= u.id %>', '<%= u.nombre %>')">
+                                <i class="fas fa-times"></i> Rechazar
+                            </button>
+                        </div>
                     </div>
                 <% }); %>
             </div>
         <% } else { %>
-            <p class="no-clientes">No hay invitaciones pendientes.</p>
+            <p class="no-clientes"><i class="fas fa-check-circle" style="color:#5cb85c;margin-right:6px;"></i>No hay invitaciones pendientes.</p>
         <% } %>
 
         <h2 class="section-title" style="border-color: var(--admin-danger); color: var(--admin-danger);">Rechazados</h2>
         <% if (usuariosRechazados && usuariosRechazados.length > 0) { %>
             <div class="cards-grid">
                 <% usuariosRechazados.forEach(u => { %>
-                    <div class="user-card-modern" style="border-top: 4px solid var(--admin-danger);">
-                        <div class="user-info">
-                            <p><strong>Nombre:</strong> <%= u.nombre %></p>
-                            <p><strong>Email:</strong> <%= u.gmail %></p>
-                        </div>
-                        <form action="/admin/aceptar-usuario/<%= u.id %>" method="POST" onsubmit="return confirmarAccion('re-admitir')" style="margin-top: 15px;">
-                            <button type="submit" class="btn-modern btn-recover">Restaurar Acceso</button>
-                        </form>                                                                                                       
+                    <div class="user-card-modern" style="border-top-color: var(--admin-danger);">
+                        <p><strong>Nombre:</strong> <%= u.nombre %></p>
+                        <p><strong>Email:</strong> <%= u.gmail %></p>
+                        <button type="button" class="btn-modern btn-recover" style="margin-top:15px;"
+                            onclick="confirmarInvitacion('re-admitir', '<%= u.id %>', '<%= u.nombre %>')">
+                            <i class="fas fa-undo"></i> Restaurar Acceso
+                        </button>
                     </div>
                 <% }); %>
             </div>
         <% } else { %>
             <p class="no-clientes">No hay historial de rechazados.</p>
         <% } %>
+
     </main>
 
+    <form id="formInvitacion" method="POST" style="display:none;"></form>
+
+    <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const menuIcon = document.querySelector('.menu-icon');
-        const navMenu = document.querySelector('.nav-menu');
-        const mainContainer = document.querySelector('.main-container');
-    
-        menuIcon.addEventListener('click', () => {
-            navMenu.classList.toggle('show');
-            if(navMenu.classList.contains('show')) {
-                mainContainer.style.marginTop = '150px';
-            } else {
-                mainContainer.style.marginTop = '0px';
+        alertify.defaults.transition = "slide";
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const flash = document.getElementById('flashData');
+            if (flash) {
+                const tipo = flash.dataset.type;
+                const msg  = flash.dataset.msg;
+                if (msg) {
+                    if (tipo === 'success')    alertify.success(msg);
+                    else if (tipo === 'error') alertify.error(msg);
+                    else                       alertify.message(msg);
+                }
             }
         });
 
-        function confirmarAccion(accion) {
-            return confirm(`¿Estás seguro de que deseas ${accion} a este usuario?`);
+        function confirmarInvitacion(accion, usuarioId, nombre) {
+            const rutas = {
+                'aceptar':    `/admin/aceptar-usuario/${usuarioId}`,
+                'rechazar':   `/admin/rechazar-usuario/${usuarioId}`,
+                're-admitir': `/admin/aceptar-usuario/${usuarioId}`
+            };
+            const mensajes = {
+                'aceptar':    `¿Aceptar la solicitud de <strong>${nombre}</strong>?`,
+                'rechazar':   `¿Rechazar la solicitud de <strong>${nombre}</strong>?`,
+                're-admitir': `¿Restaurar el acceso de <strong>${nombre}</strong>?`
+            };
+            alertify.confirm(
+                'Confirmar',
+                mensajes[accion],
+                function() {
+                    const form = document.getElementById('formInvitacion');
+                    form.action = rutas[accion];
+                    form.submit();
+                },
+                function() { alertify.warning('Acción cancelada.'); }
+            ).set('labels', { ok: 'Confirmar', cancel: 'Cancelar' });
         }
-    </script>
 
-    <!-- Script para el badge de chat (nuevo) -->
-    <script src="/socket.io/socket.io.js"></script>
-    <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
-    <script>
+        // Menú hamburguesa — igual que index.ejs
+        const menuIcon = document.querySelector('.menu-icon');
+        const navMenu  = document.querySelector('.nav-menu');
+        menuIcon.addEventListener('click', () => navMenu.classList.toggle('show'));
+
+        // Badge chat
+        <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
         (function() {
             const socket = io();
-            const usuarioId = <%= usuarioId %>;
-
-            async function actualizarBadgeHeader() {
+            async function actualizarBadge() {
                 try {
-                    const response = await fetch('/api/no-leidos');
-                    const noLeidosMap = await response.json();
-                    const total = Object.values(noLeidosMap).reduce((acc, val) => acc + val, 0);
+                    const res   = await fetch('/api/no-leidos');
+                    const map   = await res.json();
+                    const total = Object.values(map).reduce((a, v) => a + v, 0);
                     const badge = document.getElementById('chatBadge');
-                    if (total > 0) {
-                        badge.textContent = total;
-                        badge.style.display = 'inline';
-                    } else {
-                        badge.style.display = 'none';
-                    }
-                } catch (error) {
-                    console.error('Error al obtener no leídos:', error);
-                }
+                    if (badge) { badge.textContent = total; badge.style.display = total > 0 ? 'inline' : 'none'; }
+                } catch(e) {}
             }
-
-            socket.on('update-unread', actualizarBadgeHeader);
-            document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
+            socket.on('update-unread', actualizarBadge);
+            document.addEventListener('DOMContentLoaded', actualizarBadge);
         })();
+        <% } %>
     </script>
-    <% } %>
 </body>
 </html>
