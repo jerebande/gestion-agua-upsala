@@ -7,8 +7,13 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8018645287355647"
      crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/public/css/login.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
 </head>
 <body>
+    <% if (typeof error !== 'undefined') { %>
+        <div id="flashData" data-type="error" data-msg="<%= error %>"></div>
+    <% } %>
     <form action="/login" method="POST">
         <h1>Iniciar sesión</h1>
         <% if (typeof error !== 'undefined') { %>
@@ -19,6 +24,15 @@
         <p>¿No tienes una cuenta? <a href="/registro">Crea una cuenta</a></p>
         <button type="submit">Iniciar sesión</button>
     </form>
+    <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+    <script>
+        alertify.defaults.transition = "slide";
+        alertify.defaults.notifier.position = "top-right";
+        const flash = document.getElementById('flashData');
+        if (flash) {
+            alertify.error(flash.dataset.msg);
+        }
+    </script>
 </body>
 
-</html>       
+</html>

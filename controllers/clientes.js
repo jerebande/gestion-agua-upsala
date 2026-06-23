@@ -37,6 +37,8 @@ class ClienteController {
         try {
             const nombreUsuario = req.session.usuario.nombre;
             const cuentas = await clienteModel.obtenerCuentasPorFecha(fecha, usuarioId);
+            const flash = req.session.flash || null;
+            req.session.flash = null;
 
             let totalGeneral = 0, totalPagados = 0, totalFiados = 0, totalTransferencias = 0;
             cuentas.forEach(c => {
@@ -69,7 +71,8 @@ class ClienteController {
                 cuentas, fecha, nombreUsuario, usuarioRol, usuarioId,
                 totalGeneral, totalPagados, totalFiados, totalTransferencias,
                 datosPeriodo,
-                periodoSeleccionado
+                periodoSeleccionado,
+                flash
             });
         } catch (error) {
             console.error("Error al obtener cuentas por fecha:", error);
@@ -142,13 +145,18 @@ class ClienteController {
 
         try {
             const clientes = await clienteModel.obtenerClientesPorUsuario(usuarioId);
-            res.render("clientes", { clientes, usuario: req.session.usuario });
+            const flash = req.session.flash || null;
+            req.session.flash = null;
+            res.render("clientes", { clientes, usuario: req.session.usuario, flash });
         } catch (error) {
             console.error("Error al obtener clientes:", error);
+            const flash = req.session.flash || null;
+            req.session.flash = null;
             res.status(500).render("clientes", {
                 error: "Error del servidor al obtener clientes.",
                 clientes: [],
                 usuario: req.session.usuario,
+                flash
             });
         }
     }
@@ -306,6 +314,9 @@ class ClienteController {
                 historialSemanal = await clienteModel.obtenerEstadosSemanalesPorCliente(id);
             }
 
+            const flash = req.session.flash || null;
+            req.session.flash = null;
+
             const historialFormateado = historialSemanal.map(item => {
                 let fechaStr = '';
                 try {
@@ -337,7 +348,8 @@ class ClienteController {
                 historialSemanal: historialFormateado,
                 usuarioRol,
                 usuarioId,
-                dia
+                dia,
+                flash
             });
         } catch (error) {
             console.error("Error al obtener cliente:", error);

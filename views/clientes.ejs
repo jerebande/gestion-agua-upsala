@@ -135,10 +135,29 @@
     </form>  
    </main>
 
+   <% if (flash) { %>
+        <div id="flashData" data-type="<%= flash.tipo %>" data-msg="<%= flash.mensaje %>"></div>
+    <% } %>
+
    <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
    <script>
         alertify.defaults.transition = "slide";
+        alertify.defaults.notifier.position = "top-right";
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const flash = document.getElementById('flashData');
+            if (flash) {
+                const tipo = flash.dataset.type;
+                const msg  = flash.dataset.msg;
+                if (msg) {
+                    if (tipo === 'success')      alertify.success(msg);
+                    else if (tipo === 'error')   alertify.error(msg);
+                    else if (tipo === 'warning') alertify.warning(msg);
+                    else                         alertify.message(msg);
+                }
+            }
+        });
 
         // ---- Helpers ----
         function mostrarError(inputId, errorId) {

@@ -6,6 +6,8 @@
     <title>Chat con <%= otroUsuario.nombre %></title>
     <link rel="stylesheet" href="/public/css/chat.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
 </head>
 <body>
     <div class="chat-app">
@@ -84,8 +86,12 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        alertify.defaults.transition = "slide";
+        alertify.defaults.notifier.position = "top-right";
+
         const socket = io();
         const usuarioId = <%= usuarioId %>;
         const nombreUsuario = "<%= nombreUsuario %>";
@@ -106,22 +112,27 @@
             e.stopPropagation();
             const btn = e.currentTarget;
             const mensajeId = btn.dataset.id;
-            if (!confirm('¿Eliminar mensaje?')) return;
-
-            try {
-                const response = await fetch(`/mensaje/${mensajeId}`, { method: 'DELETE' });
-                if (response.ok) {
-                    const mensajeDiv = btn.closest('.message');
-                    if (mensajeDiv) mensajeDiv.remove();
-                    socket.emit('delete-message', mensajeId);
-                } else {
-                    const data = await response.json();
-                    alert(data.error || 'No se pudo eliminar el mensaje');
-                }
-            } catch (error) {
-                console.error('Error al eliminar:', error);
-                alert('Error al eliminar');
-            }
+            alertify.confirm(
+                'Eliminar mensaje',
+                '¿Eliminás este mensaje?',
+                async function() {
+                    try {
+                        const response = await fetch(`/mensaje/${mensajeId}`, { method: 'DELETE' });
+                        if (response.ok) {
+                            const mensajeDiv = btn.closest('.message');
+                            if (mensajeDiv) mensajeDiv.remove();
+                            socket.emit('delete-message', mensajeId);
+                        } else {
+                            const data = await response.json();
+                            alertify.error(data.error || 'No se pudo eliminar el mensaje');
+                        }
+                    } catch (error) {
+                        console.error('Error al eliminar:', error);
+                        alertify.error('Error al eliminar el mensaje');
+                    }
+                },
+                function() {}
+            ).set('labels', { ok: 'Sí, eliminar', cancel: 'Cancelar' });
         }
 
         // ---------- Asignar eventos a los botones de eliminar ----------
@@ -326,10 +337,10 @@
                         contenido: data.url,
                         fecha_envio: new Date().toISOString()
                     });
-                } else alert('Error al subir archivo');
+                } else alertify.error('Error al subir el archivo.');
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al subir archivo');
+                alertify.error('Error al subir el archivo.');
             } finally {
                 fileInput.value = '';
             }

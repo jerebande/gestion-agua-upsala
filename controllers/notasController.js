@@ -104,6 +104,9 @@ class NotasController {
                 nota.archivos = await notaModel.obtenerArchivos(nota.id);
             }
 
+            const flash = req.session.flash || null;
+            req.session.flash = null;
+
             res.render("notas/index", {
                 notas,
                 nombreUsuario: req.session.usuario.nombre,
@@ -113,7 +116,8 @@ class NotasController {
                 buscar,
                 tiposSeleccionados: tipos,
                 paginaActual: pagina,
-                totalPaginas: Math.ceil(totalNotas / limite)
+                totalPaginas: Math.ceil(totalNotas / limite),
+                flash
             });
         } catch (error) {
             console.error("Error al obtener mis notas:", error);
@@ -141,6 +145,9 @@ class NotasController {
                 nota.archivos = await notaModel.obtenerArchivos(nota.id);
             }
 
+            const flash = req.session.flash || null;
+            req.session.flash = null;
+
             res.render("notas/index", {
                 notas,
                 nombreUsuario: req.session.usuario.nombre,
@@ -150,7 +157,8 @@ class NotasController {
                 buscar,
                 tiposSeleccionados: tipos,
                 paginaActual: pagina,
-                totalPaginas: Math.ceil(totalNotas / limite)
+                totalPaginas: Math.ceil(totalNotas / limite),
+                flash
             });
         } catch (error) {
             console.error("Error al obtener notas:", error);
@@ -160,10 +168,13 @@ class NotasController {
 
     async mostrarFormularioCrear(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
+        const flash = req.session.flash || null;
+        req.session.flash = null;
         res.render("notas/form", {
             nota: null,
             nombreUsuario: req.session.usuario.nombre,
-            usuarioRol: req.session.usuario.rol
+            usuarioRol: req.session.usuario.rol,
+            flash
         });
     }
 
@@ -186,7 +197,8 @@ class NotasController {
             if (!titulo || !contenido) {
                 return res.status(400).render("notas/form", {
                     error: "Título y contenido son obligatorios",
-                    nota: { titulo, contenido, compartida: compartida === "on" }
+                    nota: { titulo, contenido, compartida: compartida === "on" },
+                    flash: null
                 });
             }
 
@@ -245,10 +257,13 @@ class NotasController {
                 return res.status(403).send("No tienes permiso para editar esta nota");
             }
 
+            const flash = req.session.flash || null;
+            req.session.flash = null;
             res.render("notas/form", {
                 nota,
                 nombreUsuario: usuario.nombre,
-                usuarioRol: usuario.rol
+                usuarioRol: usuario.rol,
+                flash
             });
         } catch (error) {
             console.error("Error al cargar nota:", error);

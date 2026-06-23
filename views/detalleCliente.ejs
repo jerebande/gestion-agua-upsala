@@ -6,6 +6,8 @@
     <title>Detalle - <%= cliente.nombre %></title>
     <link rel="stylesheet" href="/public/css/detallecliente.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
     <style>
         /* Estilos adicionales para el modal con pestañas */
         .payment-tabs {
@@ -199,6 +201,9 @@
 </head>
 <!-- Clase condicional según el rol del usuario -->
 <body class="<%= usuarioRol %>">
+    <% if (flash) { %>
+        <div id="flashData" data-type="<%= flash.tipo %>" data-msg="<%= flash.mensaje %>"></div>
+    <% } %>
     <!-- Header -->
     <header class="header">
         <div class="container">
@@ -398,9 +403,9 @@
                                         <div class="action-buttons">
                                             <% if (cuenta.estado_pago == 0) { %>
                                                 <div class="payment-group">
-                                                    <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/actualizarEstadoPago" method="POST" style="display: inline;" onsubmit="return confirm('¿Marcar como pagado?')">
+                                                    <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/actualizarEstadoPago" method="POST" style="display: inline;" class="form-pago-completo">
                                                         <input type="hidden" name="estado_pago" value="1">
-                                                        <button type="submit" class="btn-payment btn-complete" title="Pago completo">
+                                                        <button type="button" class="btn-payment btn-complete" title="Pago completo" onclick="confirmarPagoCompleto(this)">
                                                             <i class="fas fa-check-circle"></i>   
                                                             <span class="btn-text">Pago completo</span>
                                                         </button>
@@ -414,8 +419,8 @@
                                                 </div>
                                             <% } %>
                                             
-                                            <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/eliminar" method="POST" style="display: inline;" onsubmit="return confirm('¿Eliminar este registro?')">
-                                                <button type="submit" class="btn-delete" title="Eliminar">
+                                            <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/eliminar" method="POST" style="display: inline;" class="form-eliminar-cuenta">
+                                                <button type="button" class="btn-delete" title="Eliminar" onclick="confirmarEliminarCuenta(this)">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </form>
@@ -636,7 +641,45 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
     <script>
+        // ── Alertify config ───────────────────────────────────────────────────
+        alertify.defaults.transition = "slide";
+        alertify.defaults.notifier.position = "top-right";
+
+        // ── Flash alerts from server ──────────────────────────────────────────
+        const flash = document.getElementById('flashData');
+        if (flash) {
+            const tipo = flash.dataset.type;
+            const msg = flash.dataset.msg;
+            if (msg) {
+                if (tipo === 'success')      alertify.success(msg);
+                else if (tipo === 'error')   alertify.error(msg);
+                else if (tipo === 'warning') alertify.warning(msg);
+                else                         alertify.message(msg);
+            }
+        }
+
+        // ── Confirmar pago completo ───────────────────────────────────────────
+        function confirmarPagoCompleto(btn) {
+            alertify.confirm(
+                'Confirmar pago',
+                '¿Marcar esta cuenta como pagada?',
+                function() { btn.closest('form').submit(); },
+                function() {}
+            ).set('labels', { ok: 'Sí, marcar pagado', cancel: 'Cancelar' });
+        }
+
+        // ── Confirmar eliminar cuenta ─────────────────────────────────────────
+        function confirmarEliminarCuenta(btn) {
+            alertify.confirm(
+                'Eliminar registro',
+                '¿Eliminás este registro? Esta acción no se puede deshacer.',
+                function() { btn.closest('form').submit(); },
+                function() {}
+            ).set('labels', { ok: 'Sí, eliminar', cancel: 'Cancelar' });
+        }
+
         // Funciones para el modal de pago parcial
         function formatearMonto(valor) {
             return valor.toFixed(2).replace('.', ',');
@@ -645,11 +688,8 @@
         function formatearBidones(valor) {
             let num = Number(valor);
             if (isNaN(num)) return '0';
-            if (num % 1 === 0) {
-                return num.toString();
-            } else {
-                return num.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
-            }
+            if (num % 1 === 0) return num.toString();
+            return num.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
         }
 
         let currentCuentaId = null;
@@ -671,19 +711,16 @@
         function openPartialPaymentModal(cuentaId, clienteId, cantidad, precio) {
             currentCuentaId = cuentaId;
             currentClienteId = clienteId;
-
             originalQtySpan.textContent = formatearBidones(cantidad);
             unitPriceSpan.textContent = formatearBidones(precio);
             let total = cantidad * precio;
             totalAmountSpan.textContent = formatearMonto(total);
-
             inputCantidad.value = '';
             inputMonto.value = '';
             montoCalculadoSpan.textContent = '0,00';
             paidAmountSpan.textContent = '0,00';
             remainingSpan.textContent = formatearMonto(total);
             montoFinalInput.value = '';
-
             switchPaymentTab('cantidad');
             modal.style.display = 'flex';
         }
@@ -695,7 +732,6 @@
         function switchPaymentTab(tab) {
             document.querySelectorAll('.payment-tab').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.payment-tab-content').forEach(el => el.classList.remove('active'));
-            
             if (tab === 'cantidad') {
                 document.querySelectorAll('.payment-tab')[0].classList.add('active');
                 tabCantidad.classList.add('active');
@@ -715,16 +751,10 @@
         function actualizarDesdeCantidad() {
             let cantidad = parseFloat(inputCantidad.value) || 0;
             if (cantidad < 0) cantidad = 0;
-            
             let precioUnitario = parseFloat(unitPriceSpan.textContent.replace(',', '.')) || 0;
             let totalMostrado = parseFloat(totalAmountSpan.textContent.replace(',', '.')) || 0;
-            
             let maxCantidad = totalMostrado / precioUnitario;
-            if (cantidad > maxCantidad) {
-                cantidad = maxCantidad;
-                inputCantidad.value = cantidad.toFixed(2);
-            }
-            
+            if (cantidad > maxCantidad) { cantidad = maxCantidad; inputCantidad.value = cantidad.toFixed(2); }
             const monto = cantidad * precioUnitario;
             montoCalculadoSpan.textContent = formatearMonto(monto);
             paidAmountSpan.textContent = formatearMonto(monto);
@@ -735,13 +765,8 @@
         function actualizarDesdeMonto() {
             let monto = parseFloat(inputMonto.value) || 0;
             if (monto < 0) monto = 0;
-            
             let totalMostrado = parseFloat(totalAmountSpan.textContent.replace(',', '.')) || 0;
-            if (monto > totalMostrado) {
-                monto = totalMostrado;
-                inputMonto.value = monto;
-            }
-            
+            if (monto > totalMostrado) { monto = totalMostrado; inputMonto.value = monto; }
             paidAmountSpan.textContent = formatearMonto(monto);
             remainingSpan.textContent = formatearMonto(totalMostrado - monto);
             montoFinalInput.value = monto.toFixed(2);
@@ -751,12 +776,12 @@
             e.preventDefault();
             const montoFinal = parseFloat(montoFinalInput.value);
             if (!montoFinal || montoFinal <= 0) {
-                alert('Debe ingresar un monto válido');
+                alertify.error('Ingresá un monto válido.');
                 return;
             }
             let totalMostrado = parseFloat(totalAmountSpan.textContent.replace(',', '.')) || 0;
             if (montoFinal > totalMostrado) {
-                alert('El monto no puede superar el total de la cuenta');
+                alertify.error('El monto no puede superar el total de la cuenta.');
                 return;
             }
             const form = this;
@@ -779,30 +804,25 @@
                 input.value = newValue.toFixed(2);
                 const btnSave = document.querySelector('.btn-update-modern');
                 const actual = <%= cliente.bidones_adeudados %>;
-                if (Math.abs(newValue - actual) > 0.001) {
-                    btnSave.style.background = 'var(--primary)';
-                } else {
-                    btnSave.style.background = 'var(--text-primary)';
-                }
+                btnSave.style.background = Math.abs(newValue - actual) > 0.001 ? 'var(--primary)' : 'var(--text-primary)';
             }
         }
 
         function confirmarActualizacion() {
             const cantidad = document.getElementById('inputBidones').value;
             const actual = <%= cliente.bidones_adeudados %>;
-            if (parseFloat(cantidad) === actual) {
-                return;
-            }
-            if (confirm(`¿Confirmas que el cliente ahora tiene ${cantidad.replace('.', ',')} bidones?`)) {
-                document.getElementById('formUpdateBidones').submit();
-            }
+            if (parseFloat(cantidad) === actual) return;
+            alertify.confirm(
+                'Actualizar bidones',
+                `¿Confirmás que el cliente ahora tiene ${cantidad.replace('.', ',')} bidones?`,
+                function() { document.getElementById('formUpdateBidones').submit(); },
+                function() {}
+            ).set('labels', { ok: 'Sí, guardar', cancel: 'Cancelar' });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             const input = document.getElementById('inputBidones');
-            if (input) {
-                input.value = parseFloat(input.value).toFixed(2);
-            }
+            if (input) input.value = parseFloat(input.value).toFixed(2);
         });
 
         const precioActual = <%= precioActual %>;
@@ -811,29 +831,25 @@
 
         function actualizarTotal() {
             const cantidad = parseInt(cantidadInput.value) || 0;
-            const total = cantidad * precioActual;
-            totalPrice.textContent = `$${total.toFixed(2).replace('.', ',')}`;
+            totalPrice.textContent = `$${(cantidad * precioActual).toFixed(2).replace('.', ',')}`;
         }
         if (cantidadInput) cantidadInput.addEventListener('input', actualizarTotal);
         actualizarTotal();
 
         function eliminarEstadoSemanal(id, estado) {
-            if (confirm(`¿Eliminar registro de "${estado}"?`)) {
-                fetch(`/clientes/estado-semanal/${id}`, {
-                    method: 'DELETE'
-                })
-                .then(response => {
-                    if (response.ok) {
-                        location.reload();
-                    } else {
-                        alert('Error al eliminar');
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Error');
-                });
-            }
+            alertify.confirm(
+                'Eliminar registro semanal',
+                `¿Eliminás el registro de "${estado}"?`,
+                function() {
+                    fetch(`/clientes/estado-semanal/${id}`, { method: 'DELETE' })
+                        .then(response => {
+                            if (response.ok) { location.reload(); }
+                            else { alertify.error('Error al eliminar el registro.'); }
+                        })
+                        .catch(() => alertify.error('Error de conexión.'));
+                },
+                function() {}
+            ).set('labels', { ok: 'Sí, eliminar', cancel: 'Cancelar' });
         }
 
         function switchVentaTab(tab) {
@@ -856,21 +872,20 @@
                 document.getElementById('cantidad_bidones').value = '';
                 document.getElementById('gabriel-summary').style.display = 'block';
                 const montoInput = document.getElementById('monto');
-                const totalPrice = document.querySelector('#gabriel-summary .total-price');
-                if (montoInput && totalPrice) {
+                const totalPriceEl = document.querySelector('#gabriel-summary .total-price');
+                if (montoInput && totalPriceEl) {
                     montoInput.addEventListener('input', function() {
                         const val = parseFloat(this.value) || 0;
-                        totalPrice.textContent = `$${val.toFixed(2).replace('.', ',')}`;
+                        totalPriceEl.textContent = `$${val.toFixed(2).replace('.', ',')}`;
                     });
                 }
             }
         }
 
         <% if (usuarioRol === 'gabriel') { %>
-            document.addEventListener('DOMContentLoaded', function() {
-                switchVentaTab('cantidad');
-            });
+            document.addEventListener('DOMContentLoaded', function() { switchVentaTab('cantidad'); });
         <% } %>
     </script>
-</body>
+            return valor.toFixed(2).replace('.', ',');
+-e </body>
 </html>

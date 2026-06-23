@@ -6,6 +6,8 @@
     <title>Notas</title>
     <link rel="stylesheet" href="/public/css/index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
     <style>
         /* ===== ESTILOS MODERNOS PARA NOTAS ===== */
         :root {
@@ -682,6 +684,9 @@
     </style>
 </head>
 <body>
+    <% if (flash) { %>
+        <div id="flashData" data-type="<%= flash.tipo %>" data-msg="<%= flash.mensaje %>"></div>
+    <% } %>
     <header>
         <div class="menu-icon">
             <div class="menu-icon-bar"></div>
@@ -690,19 +695,13 @@
         </div>
         <nav class="nav-menu">
             <a href="/home">Inicio</a>        
-            <a href="/historial/cuentas">historial</a>
-            <a href="/notas">notas</a>  
-            <!-- Enlace de chat con badge de notificaciones -->
-            <a href="/chat/grupal" class="chat-link">
-                chat
-                <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
-                    <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
-                <% } %>
-            </a>
-            <a href="/configuracion" class="admin-link">configuración</a>                                  
-            <% if (usuarioRol === 'admin') { %>
-                <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
-                
+            <a href="/historial/cuentas">Historial</a>
+            <a href="/notas">Notas</a>  
+            <a href="/chat/grupal" class="chat-link">Chat<% if (typeof usuarioId !== 'undefined' && usuarioId) { %><span class="badge-unread" id="chatBadge" style="display: none;">0</span><% } %></a>
+            <a href="/configuracion">Configuración</a>                                  
+            <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>
+                <a href="/admin/invitaciones"><i class="fas fa-envelope"></i> Invitaciones</a>
+                <a href="/admin/usuarios" style="color:#ffd700;font-weight:700;"><i class="fas fa-users-cog"></i> Usuarios</a>
             <% } %>
         </nav>
         <div class="registroinicio">
@@ -848,8 +847,8 @@
                                     <a href="/notas/<%= nota.id %>/editar" class="btn-icon" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form action="/notas/<%= nota.id %>/eliminar" method="POST" style="display: inline;" onsubmit="return confirm('¿Eliminar esta nota?')">
-                                        <button type="submit" class="btn-icon" title="Eliminar">
+                                    <form action="/notas/<%= nota.id %>/eliminar" method="POST" style="display: inline;" class="form-eliminar-nota">
+                                        <button type="button" class="btn-icon" title="Eliminar" onclick="confirmarEliminarNota(this)">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>
                                     </form>
@@ -907,19 +906,31 @@
         <img class="modal-content" id="modalImage">
     </div>
 
-    <!-- Scripts existentes -->
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
     <script>
+        alertify.defaults.transition = "slide";
+        alertify.defaults.notifier.position = "top-right";
+
+        const flash = document.getElementById('flashData');
+        if (flash) {
+            const tipo = flash.dataset.type;
+            const msg = flash.dataset.msg;
+            if (msg) {
+                if (tipo === 'success')      alertify.success(msg);
+                else if (tipo === 'error')   alertify.error(msg);
+                else if (tipo === 'warning') alertify.warning(msg);
+                else                         alertify.message(msg);
+            }
+        }
+
         const menuIcon = document.querySelector('.menu-icon');
         const navMenu = document.querySelector('.nav-menu');
         const mainContainer = document.querySelector('.main-container');
-                                                                                   
+
         menuIcon.addEventListener('click', () => {
             navMenu.classList.toggle('show');
-            if (navMenu.classList.contains('show')) {
-                mainContainer.style.marginTop = '300px';
-            } else {
-                mainContainer.style.marginTop = '0';
-            }
+            mainContainer.style.marginTop = navMenu.classList.contains('show') ? '300px' : '0';
         });
 
         function openModal(src) {
@@ -933,6 +944,15 @@
         document.getElementById('imageModal').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
+
+        function confirmarEliminarNota(btn) {
+            alertify.confirm(
+                'Eliminar nota',
+                '\u00bfElimin\u00e1s esta nota? Esta acci\u00f3n no se puede deshacer.',
+                function() { btn.closest('form').submit(); },
+                function() {}
+            ).set('labels', { ok: 'S\u00ed, eliminar', cancel: 'Cancelar' });
+        }
     </script>
 
     <!-- Script para el badge de chat (Socket.IO) -->

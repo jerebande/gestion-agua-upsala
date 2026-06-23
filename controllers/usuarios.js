@@ -83,6 +83,9 @@ class UsuarioController {
                 totalPaginas = Math.ceil(todosLosClientes.length / clientesPorPagina);
             }
 
+            const flash = req.session.flash || null;
+            req.session.flash = null;
+
             res.render("index", { 
                 nombreUsuario: req.session.usuario.nombre,
                 usuarioId,
@@ -93,7 +96,8 @@ class UsuarioController {
                 totalPaginas,
                 diaSeleccionado,
                 estadosSemanales,
-                precioActual
+                precioActual,
+                flash
             });
         } catch (error) {
             console.error("Error en home:", error);

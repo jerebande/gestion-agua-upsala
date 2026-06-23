@@ -6,6 +6,8 @@
     <title><%= nota ? 'Editar Nota' : 'Nueva Nota' %></title>
     <link rel="stylesheet" href="/public/css/index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
     <style>
         /* ===== ESTILOS MODERNOS PARA FORMULARIO DE NOTAS ===== */
         /* Misma paleta y estilo que detalleclientes.css */
@@ -274,6 +276,9 @@
     </style>
 </head>
 <body>
+    <% if (flash) { %>
+        <div id="flashData" data-type="<%= flash.tipo %>" data-msg="<%= flash.mensaje %>"></div>
+    <% } %>
     <header>
         <div class="menu-icon">
             <div class="menu-icon-bar"></div>
@@ -284,9 +289,16 @@
             <a href="/home">Inicio</a>
             <a href="/historial/cuentas">Historial</a>
             <a href="/notas">Notas</a>
-            <% if (usuarioRol === 'admin') { %>
-                <a href="/admin/invitaciones" class="admin-link">Invitaciones</a>
-                <a href="/admin/configuracion" class="admin-link">Configuración</a>
+            <a href="/chat/grupal" class="chat-link">
+                Chat
+                <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
+                    <span class="badge-unread" id="chatBadge" style="display: none;">0</span>
+                <% } %>
+            </a>
+            <a href="/configuracion">Configuración</a>
+            <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'admin') { %>
+                <a href="/admin/invitaciones"><i class="fas fa-envelope"></i> Invitaciones</a>
+                <a href="/admin/usuarios" style="color:#ffd700;font-weight:700;"><i class="fas fa-users-cog"></i> Usuarios</a>
             <% } %>
         </nav>
         <div class="registroinicio">
@@ -354,19 +366,50 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        alertify.defaults.transition = "slide";
+        alertify.defaults.notifier.position = "top-right";
+
+        const flash = document.getElementById('flashData');
+        if (flash) {
+            const tipo = flash.dataset.type;
+            const msg = flash.dataset.msg;
+            if (msg) {
+                if (tipo === 'success')      alertify.success(msg);
+                else if (tipo === 'error')   alertify.error(msg);
+                else if (tipo === 'warning') alertify.warning(msg);
+                else                         alertify.message(msg);
+            }
+        }
+
         const menuIcon = document.querySelector('.menu-icon');
         const navMenu = document.querySelector('.nav-menu');
         const mainContainer = document.querySelector('.main-container');
 
         menuIcon.addEventListener('click', () => {
             navMenu.classList.toggle('show');
-            if (navMenu.classList.contains('show')) {
-                mainContainer.style.marginTop = '250px';
-            } else {
-                mainContainer.style.marginTop = '0';
-            }
+            mainContainer.style.marginTop = navMenu.classList.contains('show') ? '250px' : '0';
         });
+
+        <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
+        (function() {
+            const socket = io();
+            async function actualizarBadgeHeader() {
+                try {
+                    const response = await fetch('/api/no-leidos');
+                    const noLeidosMap = await response.json();
+                    const total = Object.values(noLeidosMap).reduce((acc, val) => acc + val, 0);
+                    const badge = document.getElementById('chatBadge');
+                    if (total > 0) { badge.textContent = total; badge.style.display = 'inline'; }
+                    else { badge.style.display = 'none'; }
+                } catch (e) { console.error('Error badge:', e); }
+            }
+            socket.on('update-unread', actualizarBadgeHeader);
+            document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
+        })();
+        <% } %>
     </script>
 </body>
 </html>
