@@ -1,6 +1,7 @@
+require('dotenv').config();
 const express = require("express");
 const app = express();
-const http = require('http');
+const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
@@ -16,15 +17,19 @@ const routerclientes = require("./routers/clientes");
 const routerconf = require("./routers/routerconf");
 const routerchat = require("./routers/chat");
 
-const port = 3000;
+// Usar el puerto proporcionado por Hostinger
+const port = process.env.PORT || 3000;
 
 // Configuración de sesión
 const sessionMiddleware = session({
     secret: "mi_secreto_seguro",
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
+    cookie: {
+        secure: false
+    }
 });
+
 app.use(sessionMiddleware);
 
 // Compartir sesión con Socket.IO
@@ -37,13 +42,16 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 // Archivos estáticos
-app.use('/public', express.static("public"));
-app.use(express.static(path.join(__dirname, 'public')));
-const uploadDir = path.join(__dirname, 'public/uploads');
+app.use("/public", express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
+
+const uploadDir = path.join(__dirname, "public/uploads");
+
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadDir));
+
+app.use("/uploads", express.static(uploadDir));
 
 // Motor de vistas
 app.set("view engine", "ejs");
@@ -55,7 +63,7 @@ app.use("/", routerclientes);
 app.use("/", routerchat);
 app.use("/notas", notasRoutes);
 
-// Mapa de usuarios conectados (opcional)
+// Mapa de usuarios conectados
 const usuariosConectados = new Map();
 
 // Socket.IO
@@ -91,6 +99,7 @@ io.on("connection", (socket) => {
 
         const ChatModel = require("./models/chat");
         const chatModel = new ChatModel();
+
         try {
             const result = await chatModel.guardarMensaje({
                 remitente_id: mensaje.remitente_id,
@@ -98,7 +107,9 @@ io.on("connection", (socket) => {
                 tipo_mensaje: mensaje.tipo_mensaje,
                 contenido: mensaje.contenido
             });
+
             mensaje.id = result.insertId;
+
         } catch (error) {
             console.error("Error guardando mensaje:", error);
             return;
@@ -107,13 +118,18 @@ io.on("connection", (socket) => {
         if (mensaje.destinatario_id === null) {
             // Mensaje grupal
             io.to("grupo").emit("receive-message", mensaje);
-            io.to("grupo").emit("update-unread"); // Actualiza badges de todos en el grupo
+            io.to("grupo").emit("update-unread");
+
         } else {
             // Mensaje privado
-            const roomName = getPrivateRoomName(mensaje.remitente_id, mensaje.destinatario_id);
+            const roomName = getPrivateRoomName(
+                mensaje.remitente_id,
+                mensaje.destinatario_id
+            );
+
             io.to(roomName).emit("receive-message", mensaje);
 
-            // Actualizar badges de ambos usuarios (incluso si no están en la sala privada)
+            // Actualizar badges de ambos usuarios
             io.to(`user-${mensaje.remitente_id}`).emit("update-unread");
             io.to(`user-${mensaje.destinatario_id}`).emit("update-unread");
         }
@@ -121,14 +137,27 @@ io.on("connection", (socket) => {
 
     socket.on("marcar-leido", async (data) => {
         const usuario = socket.request.session.usuario;
+
         if (!usuario) return;
+
         try {
             const ChatModel = require("./models/chat");
             const chatModel = new ChatModel();
-            const otroId = data.tipo === 'grupal' ? 0 : data.otroUsuarioId;
-            await chatModel.actualizarUltimoLeido(usuario.id, data.tipo, otroId, data.ultimoMensajeId);
-            // Emitir al usuario que sus no leídos han cambiado (para actualizar todas sus pestañas)
-            io.to(`user-${usuario.id}`).emit('update-unread');
+
+            const otroId =
+                data.tipo === "grupal"
+                    ? 0
+                    : data.otroUsuarioId;
+
+            await chatModel.actualizarUltimoLeido(
+                usuario.id,
+                data.tipo,
+                otroId,
+                data.ultimoMensajeId
+            );
+
+            io.to(`user-${usuario.id}`).emit("update-unread");
+
         } catch (error) {
             console.error("Error marcando leído:", error);
         }
@@ -136,9 +165,10 @@ io.on("connection", (socket) => {
 
     socket.on("delete-message", (mensajeId) => {
         const usuario = socket.request.session.usuario;
+
         if (!usuario) return;
-        
-        io.emit('message-deleted', mensajeId);
+
+        io.emit("message-deleted", mensajeId);
     });
 
     socket.on("disconnect", () => {
@@ -151,6 +181,7 @@ function getPrivateRoomName(id1, id2) {
     return [id1, id2].sort().join("-");
 }
 
+// Iniciar servidor
 server.listen(port, () => {
-    console.log(`Servidor corriendo en ${port}`);
+    console.log(`Servidor corriendo en el puerto ${port}`);
 });
