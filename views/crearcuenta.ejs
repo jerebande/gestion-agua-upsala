@@ -5,19 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="/public/css/crearcuenta.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
 </head>
 <body>
-    <% if (typeof error !== 'undefined') { %>
-        <div id="flashData" data-type="error" data-msg="<%= error %>"></div>
-    <% } %>
     <form action="/registro" method="POST">
         <h1>Crear cuenta</h1>
-        <% if (typeof error !== 'undefined') { %>
-            <p style="color: red;"><%= error %></p>
-        <% } %>
-        <input type="text" name="nombre" placeholder="Nombre completo">
+            <input type="text" name="nombre" placeholder="Nombre completo">
         <input type="email" name="gmail" placeholder="Email">
         <input type="password" name="contraseña" placeholder="Contraseña">
         <p>¿Ya tienes una cuenta? <a href="/login">Inicia sesión</a></p>

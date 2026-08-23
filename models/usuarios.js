@@ -55,9 +55,38 @@ class UsuarioModel {
     }
 
     async eliminarUsuario(usuarioId) {
-        const sql = "DELETE FROM usuarios WHERE id = ? AND rol != 'admin'";
-        const [result] = await pool.query(sql, [usuarioId]);
-        return result;
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [usuarioRows] = await connection.query(
+                "SELECT rol FROM usuarios WHERE id = ?",
+                [usuarioId]
+            );
+
+            if (usuarioRows.length === 0 || usuarioRows[0].rol === 'admin') {
+                await connection.rollback();
+                return { affectedRows: 0 };
+            }
+
+            await connection.query(
+                "DELETE FROM clientes WHERE usuario_id = ?",
+                [usuarioId]
+            );
+
+            const [result] = await connection.query(
+                "DELETE FROM usuarios WHERE id = ? AND rol != 'admin'",
+                [usuarioId]
+            );
+
+            await connection.commit();
+            return result;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 
     async obtenerEstadisticas() {
