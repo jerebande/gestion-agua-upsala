@@ -197,6 +197,21 @@
                 justify-content: center;
             }
         }
+        .highlight-green {
+            color: #22c55e;
+        }
+        .highlight-orange {
+            color: #f59e0b;
+        }
+        .highlight-purple {
+            color: #a855f7;
+        }
+        .info-card {
+            flex-wrap: wrap;
+        }
+        .info-card .info-stat {
+            min-width: 120px;
+        }
     </style>
 </head>
 <!-- Clase condicional según el rol del usuario -->
@@ -225,7 +240,7 @@
         <!-- Tarjeta de Información del Cliente -->
         <div class="info-card">
             <div class="info-stat">
-                <span class="stat-label">Bidones en Poder</span>
+                <span class="stat-label">Envases adeudados</span>
                 <span class="stat-value highlight-blue">
                     <% 
                         let bidonesVal = Number(cliente.bidones_adeudados);
@@ -243,6 +258,34 @@
                     %>
                     $<%= precioMostrar %>
                 </span>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Totales por Estado de Pago -->
+        <div class="info-card">
+            <%
+                let totalPagado = 0, totalFiado = 0, totalTransferencia = 0;
+                if (cuentas && cuentas.length > 0) {
+                    cuentas.forEach(c => {
+                        const monto = Number(c.total) || 0;
+                        if (c.estado_pago == 1) totalPagado += monto;
+                        else if (c.estado_pago == 2) totalTransferencia += monto;
+                        else totalFiado += monto;
+                    });
+                }
+                const formatearMonto = (v) => v.toFixed(2).replace('.', ',');
+            %>
+            <div class="info-stat">
+                <span class="stat-label">Total Pagado</span>
+                <span class="stat-value highlight-green">$<%= formatearMonto(totalPagado) %></span>
+            </div>
+            <div class="info-stat">
+                <span class="stat-label">Total Fiado</span>
+                <span class="stat-value highlight-orange">$<%= formatearMonto(totalFiado) %></span>
+            </div>
+            <div class="info-stat">
+                <span class="stat-label">Total Transferencia</span>
+                <span class="stat-value highlight-purple">$<%= formatearMonto(totalTransferencia) %></span>
             </div>
         </div>
 

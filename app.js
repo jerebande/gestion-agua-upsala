@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require("path");
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require("express");
 const app = express();
 const http = require("http");
@@ -7,7 +8,6 @@ const { Server } = require("socket.io");
 const io = new Server(server);
 
 const session = require("express-session");
-const path = require("path");
 const fs = require("fs");
 
 // Importar rutas
