@@ -531,20 +531,14 @@
                             %>
                             <p>Envases adeudados: <%= bidonesMostrar %></p>
                             
-                            <!-- Mostrar total fiado del día y total general SOLO para usuario gabriel -->
+                            <!-- Mostrar total fiado del día SOLO para usuario gabriel -->
                             <% if (usuarioRol === 'gabriel') { 
                                 let totalFiado = Number(cliente.totalFiadoHoy) || 0;
                                 let totalMostrar = totalFiado.toFixed(2).replace('.', ',');
-                                let totalFiadoGeneral = Number(cliente.totalFiadoGeneral) || 0;
-                                let totalMostrarGeneral = totalFiadoGeneral.toFixed(2).replace('.', ',');
                             %>
                                 <p class="total-fiado-dia">
                                     <i class="fas fa-clock" style="color: #f39c12;"></i> 
                                     Fiado hoy: <strong>$<%= totalMostrar %></strong>
-                                </p>
-                                <p class="total-fiado-general">
-                                    <i class="fas fa-chart-line" style="color: #8e44ad;"></i>
-                                    Total fiado general: <strong>$<%= totalMostrarGeneral %></strong>
                                 </p>
                             <% } %>
 
@@ -556,6 +550,15 @@
                                 <i class="fas fa-ban estado-icon <%= estadosSemanales && estadosSemanales[cliente.id] === 'no_estaba' ? 'active' : '' %>" data-estado="no_estaba" title="No estaba"></i>
                             </div>
                             <% } %>
+
+                            <% 
+                                let totalFiadoGeneral = Number(cliente.totalFiadoGeneral) || 0;
+                                let totalMostrarGeneral = totalFiadoGeneral.toFixed(2).replace('.', ',');
+                            %>
+                            <p class="total-fiado-general">
+                                <i class="fas fa-money-bill-wave" style="color: #c0392b;"></i>
+                                Plata adeudada: <strong>$<%= totalMostrarGeneral %></strong>
+                            </p>
                         </div>
                     <% }); %>
                 </div>

@@ -50,6 +50,9 @@ class UsuarioController {
                 todosLosClientes = filtro 
                     ? await clienteModel.obtenerClientesFiltrados(usuarioId, filtro)
                     : await clienteModel.obtenerClientesPorUsuario(usuarioId);
+                for (let cliente of todosLosClientes) {
+                    cliente.totalFiadoGeneral = await clienteModel.obtenerTotalFiadoGeneral(cliente.id);
+                }
             }
 
             let estadosSemanales = {};
