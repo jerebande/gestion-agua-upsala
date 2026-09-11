@@ -136,17 +136,17 @@
         .nav-menu a.admin-only i {
             margin-right: 4px;
         }
-            .modal-editar {
-                padding: 20px;
-                width: 95%;
-            }
-            .modal-botones {
-                flex-direction: column;
-                gap: 10px;
-            }
-            .modal-botones button {
-                width: 100%;
-            }
+
+        .modal-editar {
+            padding: 20px;
+            width: 95%;
+        }
+        .modal-botones {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .modal-botones button {
+            width: 100%;
         }
 
         /* Mejora en la tarjeta para el menú de tres puntos */
@@ -332,7 +332,7 @@
             margin-top: 20px;
         }
 
-        /* Pestañas (copiadas de detalleCliente) */
+        /* Pestañas */
         .payment-tabs {
             display: flex;
             gap: 10px;
@@ -410,6 +410,570 @@
         .btn-primary:hover {
             background-color: #0000a0;
         }
+
+        /* ═══════════════════════════════════════════════════════════
+           DASHBOARD DE STOCK Y GASTOS (solo gabriel) - MEJORADO
+           ═══════════════════════════════════════════════════════════ */
+        .dashboard-section {
+            margin-top: 25px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-section-title {
+            font-size: 1.5rem;
+            color: rgb(0,0,128);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .dashboard-section-title i {
+            color: #00bcd4;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .dashboard-panel-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            border: 1px solid #eef0f2;
+            position: relative;
+            transition: box-shadow 0.3s;
+        }
+
+        .dashboard-panel-card:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-panel-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            border-radius: 14px 14px 0 0;
+        }
+
+        .dashboard-panel-card.stock-card::before {
+            background: linear-gradient(90deg, #00bcd4, #4dd0e1);
+        }
+
+        .dashboard-panel-card.gastos-card::before {
+            background: linear-gradient(90deg, #f39c12, #f1c40f);
+        }
+
+        .panel-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .panel-card-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .stock-card .panel-card-icon {
+            background: linear-gradient(135deg, #00bcd4, #4dd0e1);
+        }
+
+        .gastos-card .panel-card-icon {
+            background: linear-gradient(135deg, #f39c12, #f1c40f);
+        }
+
+        .panel-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+
+        .panel-card-subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            margin: 2px 0 0 0;
+        }
+
+        /* STOCK */
+        .stock-big-value {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #00838f;
+            line-height: 1;
+            text-align: center;
+            margin: 20px 0 5px 0;
+            text-shadow: 0 2px 4px rgba(0,131,143,0.1);
+        }
+
+        .stock-unit-label {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 22px;
+            font-weight: 500;
+        }
+
+        .stock-edit-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stock-edit-row input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            box-sizing: border-box;
+            width: 100%;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .stock-edit-row input:focus {
+            border-color: #00bcd4;
+            box-shadow: 0 0 0 3px rgba(0,188,212,0.1);
+        }
+
+        .stock-edit-row button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .btn-stock-add {
+            background: linear-gradient(135deg, #28a745, #34ce57);
+            color: white;
+            box-shadow: 0 4px 10px rgba(40,167,69,0.25);
+        }
+        .btn-stock-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(40,167,69,0.35);
+        }
+
+        .btn-stock-set {
+            background: linear-gradient(135deg, rgb(0,0,128), #1a1aff);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,128,0.25);
+        }
+        .btn-stock-set:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,128,0.35);
+        }
+
+        /* GASTOS */
+        .gastos-total-box {
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            margin-bottom: 18px;
+            border: 1px solid #ffe082;
+        }
+
+        .gastos-total-label {
+            font-size: 0.8rem;
+            color: #8d6e00;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .gastos-total-value {
+            font-size: 2.4rem;
+            font-weight: bold;
+            color: #d35400;
+            line-height: 1;
+            margin-top: 8px;
+            text-shadow: 0 2px 4px rgba(211,84,0,0.1);
+        }
+
+        /* Filtros de período */
+        .periodo-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .periodo-tab {
+            padding: 7px 14px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            user-select: none;
+        }
+
+        .periodo-tab:hover {
+            background: #e8e8e8;
+            transform: translateY(-1px);
+        }
+
+        .periodo-tab.active {
+            background: linear-gradient(135deg, rgb(0,0,128), #1a1aff);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 3px 8px rgba(0,0,128,0.25);
+        }
+
+        /* Contenedor de fecha específica */
+        .fecha-especifica-container {
+            background: #f0f8ff;
+            border: 1px solid #b3d9f2;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            animation: slideDown 0.25s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fecha-especifica-container label {
+            font-weight: 600;
+            color: #0d47a1;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+        }
+
+        .fecha-especifica-container input[type="date"] {
+            padding: 8px 12px;
+            border: 2px solid #90caf9;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .fecha-especifica-container input[type="date"]:focus {
+            border-color: rgb(0,0,128);
+            box-shadow: 0 0 0 3px rgba(0,0,128,0.1);
+        }
+
+        /* Lista de gastos */
+        .gastos-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 4px;
+        }
+
+        .gastos-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .gastos-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .gastos-list::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .gastos-list::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        .gasto-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+            border-radius: 8px;
+            margin-bottom: 4px;
+        }
+
+        .gasto-item:hover {
+            background: #f8f9fa;
+        }
+
+        .gasto-item:last-child {
+            border-bottom: none;
+        }
+
+        .gasto-icono {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f39c12;
+            font-size: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(243,156,18,0.15);
+        }
+
+        .gasto-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .gasto-categoria {
+            font-weight: 700;
+            color: #333;
+            font-size: 0.92rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gasto-fecha {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .gasto-descripcion {
+            font-size: 0.78rem;
+            color: #666;
+            font-style: italic;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+
+        .gasto-monto {
+            font-weight: bold;
+            color: #d35400;
+            font-size: 1.05rem;
+            white-space: nowrap;
+            margin-right: 4px;
+        }
+
+        .gasto-acciones {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-gasto-accion {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .btn-gasto-editar {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .btn-gasto-editar:hover {
+            background: #1976d2;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .btn-gasto-eliminar {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .btn-gasto-eliminar:hover {
+            background: #c62828;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .gastos-empty {
+            text-align: center;
+            padding: 40px 15px;
+            color: #999;
+        }
+
+        .gastos-empty i {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            display: block;
+            color: #ddd;
+        }
+
+        .gastos-empty p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+
+        .gastos-empty .error-detalle {
+            font-size: 0.75rem;
+            color: #dc3545;
+            margin-top: 8px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .btn-nuevo-gasto {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #f39c12, #f1c40f);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(243,156,18,0.3);
+        }
+
+        .btn-nuevo-gasto:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(243,156,18,0.4);
+        }
+
+        /* Modal rápido */
+        .modal-quick {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 2000;
+            width: 90%;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-quick h3 {
+            margin-top: 0;
+            color: rgb(0,0,128);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 12px;
+        }
+
+        .modal-quick .form-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-quick .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .modal-quick .form-group input,
+        .modal-quick .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+
+        .modal-quick-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-quick-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        /* Fix: AlertifyJS debe estar SIEMPRE por encima de nuestros modales */
+        .alertify, .alertify-logs {
+            z-index: 9999 !important;
+        }
+        .alertify.ajs-maximized:not(.ajs-resizable) .ajs-dialog,
+        .alertify.ajs-resizable .ajs-dialog {
+            z-index: 9999 !important;
+        }
+        .ajs-modal {
+            z-index: 9999 !important;
+        }
+        .alertify-notifier {
+            z-index: 9999 !important;
+        }
     </style>
 </head>
 <body>
@@ -451,6 +1015,93 @@
             <div id="flashData" data-type="<%= flash.tipo %>" data-msg="<%= flash.mensaje %>"></div>
         <% } %>
         <% if (nombreUsuario) { %>
+
+            <!-- ⭐ DASHBOARD DE STOCK Y GASTOS (solo gabriel) -->
+            <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'gabriel') { %>
+            <div class="dashboard-section">
+                <h2 class="dashboard-section-title">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Panel de Control
+                </h2>
+                <div class="dashboard-grid">
+                    <!-- Tarjeta de STOCK -->
+                    <div class="dashboard-panel-card stock-card">
+                        <div class="panel-card-header">
+                            <div class="panel-card-icon">
+                                <i class="fas fa-cubes"></i>
+                            </div>
+                            <div>
+                                <h3 class="panel-card-title">Stock</h3>
+                                <p class="panel-card-subtitle">Bidones disponibles</p>
+                            </div>
+                        </div>
+                        <div class="stock-big-value" id="stockValue">0</div>
+                        <div class="stock-unit-label">bidones en depósito</div>
+
+                        <div class="stock-edit-row">
+                            <input type="number" id="stockInput" min="0.01" step="0.01" placeholder="Cantidad">
+                        </div>
+                        <div class="stock-edit-row">
+                            <button class="btn-stock-add" onclick="actualizarStock('sumar')">
+                                <i class="fas fa-plus"></i> Agregar
+                            </button>
+                            <button class="btn-stock-set" onclick="actualizarStock('set')">
+                                <i class="fas fa-check"></i> Establecer
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta de GASTOS -->
+                    <div class="dashboard-panel-card gastos-card">
+                        <div class="panel-card-header">
+                            <div class="panel-card-icon">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div>
+                                <h3 class="panel-card-title">Gastos</h3>
+                                <p class="panel-card-subtitle">Historial de gastos registrados</p>
+                            </div>
+                        </div>
+
+                        <div class="gastos-total-box">
+                            <div class="gastos-total-label">Total del período</div>
+                            <div class="gastos-total-value" id="gastosTotal">$0</div>
+                        </div>
+
+                        <!-- Filtros de período -->
+                        <div class="periodo-tabs">
+                            <div class="periodo-tab" data-periodo="1dia" onclick="cambiarPeriodo('1dia')">1 día</div>
+                            <div class="periodo-tab active" data-periodo="7dias" onclick="cambiarPeriodo('7dias')">7 días</div>
+                            <div class="periodo-tab" data-periodo="1mes" onclick="cambiarPeriodo('1mes')">1 mes</div>
+                            <div class="periodo-tab" data-periodo="6meses" onclick="cambiarPeriodo('6meses')">6 meses</div>
+                            <div class="periodo-tab" data-periodo="1anio" onclick="cambiarPeriodo('1anio')">1 año</div>
+                            <div class="periodo-tab" data-periodo="especifico" onclick="cambiarPeriodo('especifico')">
+                                <i class="fas fa-calendar-day"></i> Fecha específica
+                            </div>
+                        </div>
+
+                        <!-- Selector de fecha específica -->
+                        <div class="fecha-especifica-container" id="fechaEspecificaContainer" style="display: none;">
+                            <label for="fechaEspecifica"><i class="fas fa-calendar-alt"></i> Seleccionar fecha:</label>
+                            <input type="date" id="fechaEspecifica" onchange="cargarGastos()">
+                        </div>
+
+                        <!-- Lista de gastos -->
+                        <div class="gastos-list" id="gastosLista">
+                            <div class="gastos-empty">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Cargando gastos...</p>
+                            </div>
+                        </div>
+
+                        <button class="btn-nuevo-gasto" onclick="abrirModalGasto()">
+                            <i class="fas fa-plus-circle"></i> Registrar nuevo gasto
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+
             <h1 class="main-title">Clientes</h1>
             <div class="search-container">
                 <form action="/home" method="GET">
@@ -470,10 +1121,9 @@
             <% if (clientes && clientes.length) { %>
                 <div class="clientes-container">
                     <% clientes.forEach(cliente => { 
-                        // Determinar clase de borde según estado semanal actual o entrega hoy
                         let borderClass = '';
                         if (cliente.entrega_hoy) {
-                            borderClass = 'border-orange'; // Prioridad: entrega hoy
+                            borderClass = 'border-orange';
                         } else if (usuarioRol === 'gabriel' && estadosSemanales && estadosSemanales[cliente.id]) {
                             if (estadosSemanales[cliente.id] === 'compro') borderClass = 'border-green';
                             else if (estadosSemanales[cliente.id] === 'no_compro') borderClass = 'border-red';
@@ -483,12 +1133,10 @@
                         <div class="cliente-card <%= borderClass %>" data-id="<%= cliente.id %>" data-nombre="<%= cliente.nombre %>" data-direccion="<%= cliente.direccion %>" data-telefono="<%= cliente.telefono %>" id="cliente-<%= cliente.id %>">
                             <p>
                                 <i class="fas fa-user"></i>  <%= cliente.nombre %>
-                                <!-- Ícono de entrega hoy -->
                                 <i class="fas fa-truck entrega-hoy-icon" 
                                    onclick="toggleEntregaHoy(<%= cliente.id %>, this)"
                                    style="float: right; cursor: pointer; color: <%= cliente.entrega_hoy ? 'orange' : 'gray' %>; margin-right: 10px;"
                                    title="Marcar como entregado hoy"></i>
-                                <!-- Ícono de venta rápida (solo para gabriel) -->
                                 <% if (usuarioRol === 'gabriel') { %>
                                     <i class="fas fa-cart-plus agregar-venta-icon" 
                                        onclick="abrirModalVenta(<%= cliente.id %>, '<%= cliente.nombre.replace(/'/g, "\\'") %>')"
@@ -513,10 +1161,8 @@
                                 </a>
                             </p>                                                       
     
-                            <!-- Botón Gestionar - Mismo estilo que el anterior "Ver detalles" -->
                             <a href="/clientes/<%= cliente.id %><%= usuarioRol === 'gabriel' ? '?dia=' + diaSeleccionado : '' %>" class="ver-detalle">Gestionar</a>
                             
-                            <!-- Botón de tres puntos y menú flotante -->
                             <button class="menu-cliente" onclick="toggleMenu(this)">&#x22EE;</button>
                             <div class="menu-options">
                                 <button onclick="editarCliente(<%= cliente.id %>)">Editar</button>
@@ -531,7 +1177,6 @@
                             %>
                             <p>Envases adeudados: <%= bidonesMostrar %></p>
                             
-                            <!-- Mostrar total fiado del día SOLO para usuario gabriel -->
                             <% if (usuarioRol === 'gabriel') { 
                                 let totalFiado = Number(cliente.totalFiadoHoy) || 0;
                                 let totalMostrar = totalFiado.toFixed(2).replace('.', ',');
@@ -542,7 +1187,6 @@
                                 </p>
                             <% } %>
 
-                            <!-- Íconos de estado semanal - Solo visible para gabriel -->
                             <% if (usuarioRol === 'gabriel') { %>
                             <div class="estado-semanal-icons">
                                 <i class="fas fa-check-circle estado-icon <%= estadosSemanales && estadosSemanales[cliente.id] === 'compro' ? 'active' : '' %>" data-estado="compro" title="Compró"></i>
@@ -566,7 +1210,6 @@
                 <p class="no-clientes">No hay clientes registrados para este filtro.</p>
             <% } %>
 
-            <!-- Paginador de días (para usuario gabriel) - SIEMPRE visible -->
             <% if (usuarioRol === 'gabriel') { %>
                 <div class="pagination-dias">
                     <% const dias = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']; %>
@@ -578,7 +1221,6 @@
                     <% }); %>
                 </div>
             <% } else { %>
-                <!-- Paginador numérico (para otros roles) -->
                 <% if (totalPaginas > 0) { %>
                     <div class="pagination">
                         <% if (page > 1) { %>
@@ -627,7 +1269,7 @@
     </div>
     <div id="modal-overlay" style="display: none;" onclick="cerrarModal()"></div>
 
-    <!-- Modal Venta Rápida (solo para gabriel) -->
+    <!-- Modal Venta Rápida -->
     <div id="modal-venta-rapida" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -676,6 +1318,46 @@
                         <button type="submit" class="btn btn-primary btn-block">Agregar venta</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal rápido de GASTO (crear y editar) -->
+    <div id="modal-gasto" class="modal-overlay" style="display: none;">
+        <div class="modal-quick">
+            <h3>
+                <i class="fas fa-money-bill-wave"></i>
+                <span id="modal-gasto-titulo">Nuevo Gasto</span>
+            </h3>
+            <input type="hidden" id="modal-gasto-id">
+            <div class="form-group">
+                <label for="modal-gasto-categoria">Categoría</label>
+                <div style="display: flex; gap: 8px;">
+                    <select id="modal-gasto-categoria" style="flex:1;">
+                        <option value="">Seleccionar...</option>
+                    </select>
+                    <button type="button" class="btn-stock-set" style="padding: 10px 14px;" onclick="nuevaCategoriaDesdeModal()" title="Nueva categoría">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="modal-gasto-monto">Monto ($)</label>
+                <input type="number" id="modal-gasto-monto" min="0.01" step="0.01" placeholder="Ej: 5000">
+            </div>
+            <div class="form-group">
+                <label for="modal-gasto-descripcion">Descripción (opcional)</label>
+                <input type="text" id="modal-gasto-descripcion" maxlength="255" placeholder="Ej: Compra de bidones">
+            </div>
+            <div class="form-group">
+                <label for="modal-gasto-fecha">Fecha</label>
+                <input type="date" id="modal-gasto-fecha">
+            </div>
+            <div class="modal-quick-buttons">
+                <button type="button" style="background:#eee;color:#333;" onclick="cerrarModalGasto()">Cancelar</button>
+                <button type="button" class="btn-stock-set" onclick="guardarGastoDesdeModal()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
             </div>
         </div>
     </div>
@@ -729,7 +1411,7 @@
             }
         });
 
-        // ── Modal editar: abrir ───────────────────────────────────────────────
+        // ── Modal editar cliente ──────────────────────────────────────────────
         function editarCliente(id) {
             const card = document.querySelector(`.cliente-card[data-id="${id}"]`);
             document.getElementById('edit-id').value = id;
@@ -737,7 +1419,6 @@
             document.getElementById('edit-direccion').value = card.dataset.direccion;
             document.getElementById('edit-telefono').value = card.dataset.telefono;
 
-            // Limpiar estado de validación anterior
             ['edit-nombre','edit-direccion','edit-telefono'].forEach(fid => {
                 const inp = document.getElementById(fid);
                 inp.classList.remove('input-error','input-valid');
@@ -754,7 +1435,6 @@
             document.getElementById('modal-overlay').style.display = 'none';
         }
 
-        // ── Helpers de validación del modal ───────────────────────────────────
         function modalSetError(fieldId) {
             document.getElementById(fieldId).classList.add('input-error');
             document.getElementById(fieldId).classList.remove('input-valid');
@@ -766,7 +1446,6 @@
             document.getElementById(fieldId + '-error').classList.remove('show');
         }
 
-        // Validación en tiempo real dentro del modal
         document.getElementById('edit-nombre').addEventListener('input', function() {
             this.value.trim().length >= 2 ? modalClearError('edit-nombre') : modalSetError('edit-nombre');
         });
@@ -779,7 +1458,6 @@
             (l === 10 || l === 11) ? modalClearError('edit-telefono') : modalSetError('edit-telefono');
         });
 
-        // ── Modal editar: guardar con validación completa ─────────────────────
         function guardarEdicion() {
             const id       = document.getElementById('edit-id').value;
             const nombre   = document.getElementById('edit-nombre').value.trim();
@@ -858,10 +1536,11 @@
                         })
                         .catch(() => alertify.error('Error de conexión.'));
                 },
-                function() { /* cancelado */ }
+                function() { }
             );
         }
 
+        // ── Chat badge ────────────────────────────────────────────────────────
         <% if (typeof usuarioId !== 'undefined' && usuarioId) { %>
             const socket = io();
             const usuarioId = <%= usuarioId %>;
@@ -879,6 +1558,423 @@
 
             socket.on('update-unread', actualizarBadgeHeader);
             document.addEventListener('DOMContentLoaded', actualizarBadgeHeader);
+        <% } %>
+
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ DASHBOARD DE STOCK Y GASTOS (solo gabriel)
+        // ═══════════════════════════════════════════════════════════════
+        <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'gabriel') { %>
+
+        let periodoActual = '7dias';
+        let categoriasGastos = [];
+
+        // ── Formatear fecha local (evita desfase UTC) ─────────────────────────
+        function formatearFechaLocal(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // ── Cargar stock ──────────────────────────────────────────────────────
+        async function cargarStock() {
+            try {
+                const res = await fetch('/api/stock');
+                const data = await res.json();
+                const stock = parseFloat(data.stock) || 0;
+                const stockMostrar = stock % 1 === 0 ? stock.toString() : stock.toFixed(2).replace('.', ',');
+                document.getElementById('stockValue').textContent = stockMostrar;
+            } catch (e) {
+                console.error('Error al cargar stock:', e);
+            }
+        }
+
+        // ── Actualizar stock ──────────────────────────────────────────────────
+        async function actualizarStock(operacion) {
+            const input = document.getElementById('stockInput');
+            const cantidad = parseFloat(input.value);
+            
+            if (isNaN(cantidad) || (operacion === 'sumar' && cantidad <= 0) || (operacion === 'set' && cantidad < 0)) {
+                alertify.error('Ingresá una cantidad válida.');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/stock/actualizar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cantidad, operacion })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    const nuevoStock = parseFloat(data.nuevoStock) || 0;
+                    const stockMostrar = nuevoStock % 1 === 0 ? nuevoStock.toString() : nuevoStock.toFixed(2).replace('.', ',');
+                    document.getElementById('stockValue').textContent = stockMostrar;
+                    input.value = '';
+                    alertify.success(operacion === 'sumar' ? 'Stock agregado.' : 'Stock establecido.');
+                } else {
+                    alertify.error(data.error || 'Error al actualizar stock.');
+                }
+            } catch (e) {
+                alertify.error('Error de conexión.');
+            }
+        }
+
+        // ── Cargar gastos ─────────────────────────────────────────────────────
+        async function cargarGastos() {
+            const lista = document.getElementById('gastosLista');
+            lista.innerHTML = '<div class="gastos-empty"><i class="fas fa-spinner fa-spin"></i><p>Cargando...</p></div>';
+            
+            try {
+                let fechaInicioStr, fechaFinStr;
+                
+                if (periodoActual === 'especifico') {
+                    const fechaInput = document.getElementById('fechaEspecifica');
+                    const fechaSeleccionada = fechaInput.value || formatearFechaLocal(new Date());
+                    fechaInicioStr = fechaSeleccionada;
+                    fechaFinStr = fechaSeleccionada;
+                } else {
+                    const hoy = new Date();
+                    let fechaInicio = new Date();
+                    
+                    switch (periodoActual) {
+                        case '1dia':
+                            fechaInicio = hoy;
+                            break;
+                        case '7dias':
+                            fechaInicio = new Date(hoy.getTime() - 6 * 24 * 60 * 60 * 1000);
+                            break;
+                        case '1mes':
+                            fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth() - 1, hoy.getDate());
+                            break;
+                        case '6meses':
+                            fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth() - 6, hoy.getDate());
+                            break;
+                        case '1anio':
+                            fechaInicio = new Date(hoy.getFullYear() - 1, hoy.getMonth(), hoy.getDate());
+                            break;
+                        default:
+                            fechaInicio = new Date(hoy.getTime() - 6 * 24 * 60 * 60 * 1000);
+                    }
+                    
+                    fechaInicioStr = formatearFechaLocal(fechaInicio);
+                    fechaFinStr = formatearFechaLocal(hoy);
+                }
+                
+                const res = await fetch(`/api/gastos?fechaInicio=${fechaInicioStr}&fechaFin=${fechaFinStr}`);
+                
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
+                }
+                
+                const data = await res.json();
+                const gastos = data.gastos || [];
+                
+                // Calcular total
+                let total = 0;
+                gastos.forEach(g => { total += parseFloat(g.monto) || 0; });
+                document.getElementById('gastosTotal').textContent = '$' + total.toFixed(2).replace('.', ',');
+                
+                // Renderizar lista
+                if (gastos.length === 0) {
+                    const mensajeVacio = periodoActual === 'especifico' 
+                        ? 'No hay gastos en la fecha seleccionada'
+                        : 'No hay gastos en este período';
+                    lista.innerHTML = `
+                        <div class="gastos-empty">
+                            <i class="fas fa-inbox"></i>
+                            <p>${mensajeVacio}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                lista.innerHTML = gastos.map(g => {
+                    const fecha = new Date(g.fecha_gasto + 'T12:00:00').toLocaleDateString('es-AR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: '2-digit'
+                    });
+                    const monto = parseFloat(g.monto).toFixed(2).replace('.', ',');
+                    const descripcion = g.descripcion ? `<div class="gasto-descripcion">${g.descripcion}</div>` : '';
+                    
+                    return `
+                        <div class="gasto-item">
+                            <div class="gasto-icono">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <div class="gasto-info">
+                                <div class="gasto-categoria">${g.categoria_nombre}</div>
+                                <div class="gasto-fecha">${fecha}</div>
+                                ${descripcion}
+                            </div>
+                            <div class="gasto-monto">$${monto}</div>
+                            <div class="gasto-acciones">
+                                <button class="btn-gasto-accion btn-gasto-editar" onclick="editarGasto(${g.id})" title="Editar">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button class="btn-gasto-accion btn-gasto-eliminar" onclick="eliminarGasto(${g.id})" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                window._gastosCache = gastos;
+                
+                if (categoriasGastos.length === 0) {
+                    cargarCategorias();
+                }
+            } catch (e) {
+                console.error('Error al cargar gastos:', e);
+                lista.innerHTML = `
+                    <div class="gastos-empty">
+                        <i class="fas fa-exclamation-triangle" style="color:#dc3545;"></i>
+                        <p>Error al cargar gastos</p>
+                        <div class="error-detalle">${e.message}</div>
+                        <button onclick="cargarGastos()" style="margin-top:12px;padding:8px 16px;background:rgb(0,0,128);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">
+                            <i class="fas fa-redo"></i> Reintentar
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ── Cambiar período ───────────────────────────────────────────────────
+        function cambiarPeriodo(periodo) {
+            periodoActual = periodo;
+            document.querySelectorAll('.periodo-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.periodo === periodo);
+            });
+            
+            const fechaContainer = document.getElementById('fechaEspecificaContainer');
+            const fechaInput = document.getElementById('fechaEspecifica');
+            
+            if (periodo === 'especifico') {
+                fechaContainer.style.display = 'flex';
+                if (!fechaInput.value) {
+                    fechaInput.value = formatearFechaLocal(new Date());
+                }
+            } else {
+                fechaContainer.style.display = 'none';
+            }
+            
+            cargarGastos();
+        }
+
+        // ── Cargar categorías ─────────────────────────────────────────────────
+        async function cargarCategorias() {
+            try {
+                const res = await fetch('/api/gastos');
+                const data = await res.json();
+                
+                const catsMap = new Map();
+                if (data.gastos) {
+                    data.gastos.forEach(g => {
+                        if (!catsMap.has(g.categoria_id)) {
+                            catsMap.set(g.categoria_id, g.categoria_nombre);
+                        }
+                    });
+                }
+                categoriasGastos = Array.from(catsMap.entries()).map(([id, nombre]) => ({ id, nombre }));
+                
+                actualizarSelectCategorias();
+            } catch (e) {
+                console.error('Error al cargar categorías:', e);
+            }
+        }
+
+        function actualizarSelectCategorias() {
+            const select = document.getElementById('modal-gasto-categoria');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Seleccionar...</option>';
+            categoriasGastos.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.nombre;
+                select.appendChild(opt);
+            });
+        }
+
+        // ── MODAL GASTO: Crear ────────────────────────────────────────────────
+        function abrirModalGasto() {
+            document.getElementById('modal-gasto-titulo').textContent = 'Nuevo Gasto';
+            document.getElementById('modal-gasto-id').value = '';
+            document.getElementById('modal-gasto-categoria').value = '';
+            document.getElementById('modal-gasto-monto').value = '';
+            document.getElementById('modal-gasto-descripcion').value = '';
+            document.getElementById('modal-gasto-fecha').value = formatearFechaLocal(new Date());
+            document.getElementById('modal-gasto').style.display = 'flex';
+            cargarCategorias();
+        }
+
+        // ── MODAL GASTO: Editar ───────────────────────────────────────────────
+        function editarGasto(id) {
+            const gasto = (window._gastosCache || []).find(g => g.id === id);
+            if (!gasto) {
+                alertify.error('No se encontró el gasto.');
+                return;
+            }
+            
+            document.getElementById('modal-gasto-titulo').textContent = 'Editar Gasto';
+            document.getElementById('modal-gasto-id').value = gasto.id;
+            document.getElementById('modal-gasto-categoria').value = gasto.categoria_id;
+            document.getElementById('modal-gasto-monto').value = gasto.monto;
+            document.getElementById('modal-gasto-descripcion').value = gasto.descripcion || '';
+            
+            // Formatear fecha para input date (evitar desfase)
+            const fechaStr = gasto.fecha_gasto.split('T')[0];
+            document.getElementById('modal-gasto-fecha').value = fechaStr;
+            
+            document.getElementById('modal-gasto').style.display = 'flex';
+            cargarCategorias();
+        }
+
+        function cerrarModalGasto() {
+            document.getElementById('modal-gasto').style.display = 'none';
+        }
+
+        // ── Guardar (crear o editar) gasto ────────────────────────────────────
+        async function guardarGastoDesdeModal() {
+            const id = document.getElementById('modal-gasto-id').value;
+            const categoria_id = document.getElementById('modal-gasto-categoria').value;
+            const monto = document.getElementById('modal-gasto-monto').value;
+            const descripcion = document.getElementById('modal-gasto-descripcion').value;
+            const fecha_gasto = document.getElementById('modal-gasto-fecha').value;
+            
+            if (!categoria_id) {
+                alertify.error('Seleccioná una categoría.');
+                return;
+            }
+            if (!monto || parseFloat(monto) <= 0) {
+                alertify.error('Ingresá un monto válido.');
+                return;
+            }
+            if (!fecha_gasto) {
+                alertify.error('Seleccioná una fecha.');
+                return;
+            }
+            
+            try {
+                let res;
+                if (id) {
+                    res = await fetch(`/api/gastos/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            categoria_id,
+                            monto: parseFloat(monto),
+                            descripcion,
+                            fecha_gasto
+                        })
+                    });
+                } else {
+                    res = await fetch('/api/gastos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            categoria_id,
+                            monto: parseFloat(monto),
+                            descripcion,
+                            fecha_gasto
+                        })
+                    });
+                }
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    cerrarModalGasto();
+                    alertify.success(id ? 'Gasto actualizado.' : 'Gasto registrado.');
+                    cargarGastos();
+                } else {
+                    alertify.error(data.error || 'Error al guardar gasto.');
+                }
+            } catch (e) {
+                alertify.error('Error de conexión.');
+            }
+        }
+
+        // ── Eliminar gasto ────────────────────────────────────────────────────
+        function eliminarGasto(id) {
+            alertify.confirm(
+                'Eliminar gasto',
+                '¿Estás seguro de que querés eliminar este gasto?',
+                async function() {
+                    try {
+                        const res = await fetch(`/api/gastos/${id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            alertify.success('Gasto eliminado.');
+                            cargarGastos();
+                        } else {
+                            alertify.error(data.error || 'Error al eliminar.');
+                        }
+                    } catch (e) {
+                        alertify.error('Error de conexión.');
+                    }
+                },
+                function() {}
+            );
+        }
+
+        // ── Nueva categoría ───────────────────────────────────────────────────
+        function nuevaCategoriaDesdeModal() {
+            alertify.prompt(
+                'Nueva categoría',
+                'Nombre de la categoría:',
+                '',
+                async function(evt, value) {
+                    if (!value || value.trim().length === 0) {
+                        alertify.error('El nombre no puede estar vacío.');
+                        return;
+                    }
+                    
+                    try {
+                        const res = await fetch('/api/categorias-gastos', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ nombre: value.trim() })
+                        });
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            await cargarCategorias();
+                            document.getElementById('modal-gasto-categoria').value = data.categoriaId;
+                            alertify.success('Categoría creada.');
+                        } else {
+                            alertify.error(data.error || 'Error al crear categoría.');
+                        }
+                    } catch (e) {
+                        alertify.error('Error de conexión.');
+                    }
+                },
+                function() {}
+            );
+        }
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('modal-gasto').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModalGasto();
+        });
+
+        // Cargar datos al inicio
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarStock();
+            
+            const fechaInput = document.getElementById('fechaEspecifica');
+            if (fechaInput) {
+                fechaInput.value = formatearFechaLocal(new Date());
+            }
+            
+            cargarGastos();
+        });
+
         <% } %>
 
         // ── Entrega del día ───────────────────────────────────────────────────
@@ -1042,4 +2138,3 @@
     </script>
 </body> 
 </html>
-

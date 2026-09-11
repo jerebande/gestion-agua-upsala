@@ -63,21 +63,33 @@
         }
 
         /* Estilo para el badge de chat */
-      .badge-unread {
-    position: absolute;
-    right: 8px;           /* Ajusta para que quede centrado en el padding-right */
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: red;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    min-width: 18px;
-    text-align: center;
-    box-sizing: border-box;
-    margin-left: 0;       /* Anula cualquier margen izquierdo heredado */
-}
+        .badge-unread {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            min-width: 18px;
+            text-align: center;
+            box-sizing: border-box;
+            margin-left: 0;
+        }
+
+        /* ⭐ Enlace Stock y Gastos */
+        .nav-menu a.stock-link {
+            color: #00bcd4;
+            font-weight: 700;
+        }
+        .nav-menu a.stock-link:hover {
+            color: #4dd0e1;
+        }
+        .nav-menu a.stock-link i {
+            margin-right: 4px;
+        }
     </style>
 </head>
 <body>
@@ -98,6 +110,11 @@
                 <% } %>
             </a>
             <a href="/configuracion">Configuración</a>
+            <% if (usuarioRol === 'gabriel') { %>
+                <a href="/stock-gastos" class="stock-link">
+                    <i class="fas fa-boxes"></i> Stock y Gastos
+                </a>
+            <% } %>
             <% if (usuarioRol === 'admin') { %>
                 <a href="/admin/invitaciones"><i class="fas fa-envelope"></i> Invitaciones</a>
                 <a href="/admin/usuarios" style="color:#ffd700;font-weight:700;"><i class="fas fa-users-cog"></i> Usuarios</a>
@@ -122,7 +139,6 @@
                 Precio actual: $<%= precio %>
             </div>
 
-            <!-- Cambiamos la acción a /configuracion (sin /admin) -->
             <form action="/configuracion" method="POST">
                 <label for="precio_bidon">Nuevo precio:</label>
                 <input type="number" id="precio_bidon" name="precio_bidon" step="0.01" min="0" placeholder="Ej: 5000" required>

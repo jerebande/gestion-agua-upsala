@@ -140,6 +140,43 @@ class ClienteModel {
         };
     }
 
+    // ⭐ Totales globales por estado de pago (todas las cuentas del cliente)
+    async obtenerTotalesPorCliente(clienteId) {
+        const sql = `
+            SELECT 
+                estado_pago,
+                IFNULL(SUM(total), 0) AS total_dinero,
+                IFNULL(SUM(cantidad_bidones), 0) AS total_bidones,
+                COUNT(*) AS cantidad_cuentas
+            FROM cuentas
+            WHERE cliente_id = ?
+            GROUP BY estado_pago
+        `;
+        const [rows] = await pool.query(sql, [clienteId]);
+        
+        const resultado = {
+            pagado: { dinero: 0, bidones: 0, cuentas: 0 },
+            fiado: { dinero: 0, bidones: 0, cuentas: 0 },
+            transferencia: { dinero: 0, bidones: 0, cuentas: 0 }
+        };
+        
+        rows.forEach(row => {
+            const dinero = parseFloat(row.total_dinero) || 0;
+            const bidones = parseFloat(row.total_bidones) || 0;
+            const cuentas = parseInt(row.cantidad_cuentas) || 0;
+            
+            if (row.estado_pago == 1) {
+                resultado.pagado = { dinero, bidones, cuentas };
+            } else if (row.estado_pago == 2) {
+                resultado.transferencia = { dinero, bidones, cuentas };
+            } else {
+                resultado.fiado = { dinero, bidones, cuentas };
+            }
+        });
+        
+        return resultado;
+    }
+
     async obtenerCuentaPorId(idCuenta) {
         const sql = `SELECT id, cliente_id, estado_pago, cantidad_bidones, precio_bidon, total FROM cuentas WHERE id = ?`;
         const [rows] = await pool.query(sql, [idCuenta]);
@@ -275,7 +312,6 @@ class ClienteModel {
         return map;
     }
 
-    // ----- MÉTODO MEJORADO: obtenerTotalFiadoPorClienteYFecha con rango -----
     async obtenerTotalFiadoPorClienteYFecha(clienteId, fecha) {
         const sql = `
             SELECT IFNULL(SUM(total), 0) as total_fiado
@@ -289,7 +325,6 @@ class ClienteModel {
         return rows[0].total_fiado;
     }
 
-    // ----- NUEVO MÉTODO: Obtener total fiado general -----
     async obtenerTotalFiadoGeneral(clienteId) {
         const sql = `
             SELECT IFNULL(SUM(total), 0) as total_fiado
@@ -300,10 +335,10 @@ class ClienteModel {
         return rows[0].total_fiado;
     }
 
-    // ----- NUEVOS MÉTODOS PARA ENTREGAS DIARIAS -----
+    // ----- MÉTODOS PARA ENTREGAS DIARIAS -----
     async marcarEntregaHoy(clienteId) {
         const { obtenerFechaLocal } = require("../utils/fecha");
-        const fecha = obtenerFechaLocal(); // <-- MODIFICADO
+        const fecha = obtenerFechaLocal();
         const sql = `
             INSERT INTO entregas_diarias (cliente_id, fecha)
             VALUES (?, ?)
@@ -315,7 +350,7 @@ class ClienteModel {
 
     async quitarEntregaHoy(clienteId) {
         const { obtenerFechaLocal } = require("../utils/fecha");
-        const fecha = obtenerFechaLocal(); // <-- MODIFICADO
+        const fecha = obtenerFechaLocal();
         const sql = `DELETE FROM entregas_diarias WHERE cliente_id = ? AND fecha = ?`;
         const [result] = await pool.query(sql, [clienteId, fecha]);
         return result;

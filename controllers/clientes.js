@@ -2,6 +2,8 @@ const ClienteModel = require("../models/clientes");
 const clienteModel = new ClienteModel();
 const UsuarioModel = require("../models/usuarios");
 const usuarioModel = new UsuarioModel();
+const StockGastosModel = require("../models/stockGastos");
+const stockGastosModel = new StockGastosModel();
 const pool = require("../database/db");
 const { obtenerFechaLocal, obtenerLunesSemanaActual } = require("../utils/fecha");
 
@@ -26,7 +28,7 @@ class ClienteController {
         }
     }
     
-      async listarCuentasPorFecha(req, res) {
+    async listarCuentasPorFecha(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
 
         const fecha = req.query.fecha || obtenerFechaLocal();
@@ -226,40 +228,23 @@ class ClienteController {
                 return res.status(404).send("Cliente no encontrado o no tiene permiso.");
             }
 
-            if (usuarioRol === 'gabriel') {
-                if (monto && monto.trim() !== '') {
-                    const montoVal = parseFloat(monto);
-                    if (isNaN(montoVal) || montoVal <= 0) {
-                        return res.status(400).send("Monto inválido.");
-                    }
-                    await clienteModel.agregarCuenta({
-                        cliente_id: id,
-                        estado_pago,
-                        cantidad_bidones: montoVal,
-                        precio_bidon: 1,
-                        total: montoVal
-                    });
-                } else if (cantidad_bidones && cantidad_bidones.trim() !== '') {
-                    const cant = parseFloat(cantidad_bidones);
-                    if (isNaN(cant) || cant <= 0) {
-                        return res.status(400).send("Cantidad inválida.");
-                    }
-                    const precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId);
-                    const total = cant * precio_bidon;
-                    await clienteModel.agregarCuenta({
-                        cliente_id: id,
-                        estado_pago,
-                        cantidad_bidones: cant,
-                        precio_bidon,
-                        total
-                    });
-                } else {
-                    return res.status(400).send("Debe ingresar un monto o una cantidad.");
+            let cantidadFinal = 0;
+
+            // ⭐ LÓGICA UNIFICADA: cualquier usuario puede ingresar por monto o por cantidad
+            if (monto && monto.toString().trim() !== '') {
+                const montoVal = parseFloat(monto);
+                if (isNaN(montoVal) || montoVal <= 0) {
+                    return res.status(400).send("Monto inválido.");
                 }
-            } else {
-                if (!cantidad_bidones) {
-                    return res.status(400).send("La cantidad de bidones es obligatoria.");
-                }
+                await clienteModel.agregarCuenta({
+                    cliente_id: id,
+                    estado_pago,
+                    cantidad_bidones: montoVal,
+                    precio_bidon: 1,
+                    total: montoVal
+                });
+                cantidadFinal = montoVal;
+            } else if (cantidad_bidones && cantidad_bidones.toString().trim() !== '') {
                 const cant = parseFloat(cantidad_bidones);
                 if (isNaN(cant) || cant <= 0) {
                     return res.status(400).send("Cantidad inválida.");
@@ -273,18 +258,47 @@ class ClienteController {
                     precio_bidon,
                     total
                 });
+                cantidadFinal = cant;
+            } else {
+                return res.status(400).send("Debe ingresar un monto o una cantidad.");
+            }
+
+            // ⭐ DESCONTAR STOCK AUTOMÁTICAMENTE (solo para usuario gabriel)
+            if (usuarioRol === 'gabriel' && cantidadFinal > 0) {
+                try {
+                    const stockActual = await stockGastosModel.obtenerStock(usuarioId);
+                    const tipoPago = estado_pago == 1 ? 'Pagado' : 
+                                     estado_pago == 0 ? 'Fiado' : 'Transferencia';
+                    
+                    if (stockActual >= cantidadFinal) {
+                        await stockGastosModel.descontarStock(
+                            usuarioId, 
+                            cantidadFinal, 
+                            `Venta a ${cliente.nombre} (${tipoPago})`
+                        );
+                    } else {
+                        console.warn(`⚠️ Stock insuficiente usuario ${usuarioId}. Stock: ${stockActual}, Solicitado: ${cantidadFinal}`);
+                        await stockGastosModel.descontarStock(
+                            usuarioId, 
+                            cantidadFinal, 
+                            `Venta a ${cliente.nombre} (${tipoPago}) - STOCK INSUFICIENTE`
+                        );
+                    }
+                } catch (stockError) {
+                    console.error("Error al descontar stock:", stockError);
+                }
             }
 
             await clienteModel.quitarEntregaHoy(id);
 
-            if (req.xhr) {
+            if (req.xhr || req.headers['x-requested-with'] === 'fetch') {
                 return res.json({ success: true });
             } else {
                 return res.redirect(`/clientes/${id}`);
             }
         } catch (error) {
             console.error("Error al agregar cuenta:", error);
-            if (req.xhr) {
+            if (req.xhr || req.headers['x-requested-with'] === 'fetch') {
                 return res.status(500).json({ error: "Error del servidor al agregar cuenta." });
             } else {
                 return res.status(500).send("Error del servidor al agregar cuenta.");
@@ -309,10 +323,10 @@ class ClienteController {
             const cuentasData = await clienteModel.obtenerCuentasPorCliente(id, pagina);
             const precioActual = await usuarioModel.obtenerPrecioUsuario(usuarioId);
             
-            let historialSemanal = [];
-            if (usuarioRol === 'gabriel') {
-                historialSemanal = await clienteModel.obtenerEstadosSemanalesPorCliente(id);
-            }
+            // ⭐ Totales globales (de TODAS las cuentas, no solo la página actual)
+            const totalesGlobales = await clienteModel.obtenerTotalesPorCliente(id);
+            
+            const historialSemanal = await clienteModel.obtenerEstadosSemanalesPorCliente(id);
 
             const flash = req.session.flash || null;
             req.session.flash = null;
@@ -345,6 +359,7 @@ class ClienteController {
                 totalCuentas: cuentasData.totalCuentas,
                 totalPaginas: cuentasData.totalPaginas,
                 precioActual,
+                totalesGlobales, // ⭐ NUEVO
                 historialSemanal: historialFormateado,
                 usuarioRol,
                 usuarioId,
@@ -407,9 +422,6 @@ class ClienteController {
     // ----- MÉTODOS PARA ESTADOS SEMANALES -----
     async guardarEstadoSemanal(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
-        if (req.session.usuario.rol !== 'gabriel') {
-            return res.status(403).json({ error: "No autorizado" });
-        }
         const { id } = req.params;
         const { estado } = req.body;
         const usuarioId = req.session.usuario.id;
@@ -434,9 +446,6 @@ class ClienteController {
 
     async eliminarEstadoSemanal(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
-        if (req.session.usuario.rol !== 'gabriel') {
-            return res.status(403).json({ error: "No autorizado" });
-        }
         const { id } = req.params;
         const usuarioId = req.session.usuario.id;
 

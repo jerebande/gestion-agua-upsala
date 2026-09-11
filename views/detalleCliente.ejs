@@ -109,30 +109,7 @@
         .table-modern td .date-cell,
         .table-modern td .qty-badge,
         .table-modern td .price-display {
-            font-size: inherit; /* Hereda el tamaño del td */
-        }
-
-        /* ===== ESTILOS ESPECÍFICOS PARA GABRIEL ===== */
-        body.gabriel .table-modern td,
-        body.gabriel .table-modern th {
-            font-size: 1.4rem;  /* Celdas y encabezados más grandes */
-        }
-
-        /* Excepción: los botones de acción mantienen su tamaño original */
-        body.gabriel .table-modern td .btn-payment,
-        body.gabriel .table-modern td .btn-delete {
-            font-size: 0.9rem;   /* Para btn-payment */
-        }
-        body.gabriel .table-modern td .btn-delete {
-            font-size: 1.2rem;   /* Para el icono eliminar */
-        }
-
-        /* Ajuste responsive para gabriel */
-        @media (max-width: 768px) {
-            body.gabriel .table-modern td,
-            body.gabriel .table-modern th {
-                font-size: 1.2rem;
-            }
+            font-size: inherit;
         }
 
         /* ===== ESTILOS PARA BOTONES DE PAGO ===== */
@@ -212,10 +189,30 @@
         .info-card .info-stat {
             min-width: 120px;
         }
+
+        /* ⭐ NUEVO: Subvalor de los totales (cantidad de bidones) */
+        .stat-subvalue {
+            display: block;
+            font-size: 0.75rem;
+            color: #888;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        /* Fix: AlertifyJS debe estar SIEMPRE por encima de nuestros modales */
+        .alertify, .alertify-logs {
+            z-index: 9999 !important;
+        }
+        .ajs-modal {
+            z-index: 9999 !important;
+        }
+        .alertify-notifier {
+            z-index: 9999 !important;
+        }
     </style>
 </head>
-<!-- Clase condicional según el rol del usuario -->
-<body class="<%= usuarioRol %>">
+<!-- Clase de body fija (sin distinción de rol) -->
+<body>
     <% if (flash) { %>
         <div id="flashData" data-type="<%= flash.tipo %>" data-msg="<%= flash.mensaje %>"></div>
     <% } %>
@@ -261,31 +258,40 @@
             </div>
         </div>
 
-        <!-- Tarjeta de Totales por Estado de Pago -->
+        <!-- ⭐ Tarjeta de Totales por Estado de Pago (con bidones globales) -->
         <div class="info-card">
             <%
-                let totalPagado = 0, totalFiado = 0, totalTransferencia = 0;
-                if (cuentas && cuentas.length > 0) {
-                    cuentas.forEach(c => {
-                        const monto = Number(c.total) || 0;
-                        if (c.estado_pago == 1) totalPagado += monto;
-                        else if (c.estado_pago == 2) totalTransferencia += monto;
-                        else totalFiado += monto;
-                    });
-                }
                 const formatearMonto = (v) => v.toFixed(2).replace('.', ',');
+                const formatearCant = (v) => {
+                    if (v % 1 === 0) return v.toString();
+                    return v.toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+                };
+                
+                // Usar totalesGlobales si está disponible
+                const tp = (typeof totalesGlobales !== 'undefined' && totalesGlobales) 
+                    ? totalesGlobales.pagado 
+                    : { dinero: 0, bidones: 0, cuentas: 0 };
+                const tf = (typeof totalesGlobales !== 'undefined' && totalesGlobales) 
+                    ? totalesGlobales.fiado 
+                    : { dinero: 0, bidones: 0, cuentas: 0 };
+                const tt = (typeof totalesGlobales !== 'undefined' && totalesGlobales) 
+                    ? totalesGlobales.transferencia 
+                    : { dinero: 0, bidones: 0, cuentas: 0 };
             %>
             <div class="info-stat">
                 <span class="stat-label">Total Pagado</span>
-                <span class="stat-value highlight-green">$<%= formatearMonto(totalPagado) %></span>
+                <span class="stat-value highlight-green">$<%= formatearMonto(tp.dinero) %></span>
+                <span class="stat-subvalue"><%= formatearCant(tp.bidones) %> bidones</span>
             </div>
             <div class="info-stat">
                 <span class="stat-label">Total Fiado</span>
-                <span class="stat-value highlight-orange">$<%= formatearMonto(totalFiado) %></span>
+                <span class="stat-value highlight-orange">$<%= formatearMonto(tf.dinero) %></span>
+                <span class="stat-subvalue"><%= formatearCant(tf.bidones) %> bidones</span>
             </div>
             <div class="info-stat">
                 <span class="stat-label">Total Transferencia</span>
-                <span class="stat-value highlight-purple">$<%= formatearMonto(totalTransferencia) %></span>
+                <span class="stat-value highlight-purple">$<%= formatearMonto(tt.dinero) %></span>
+                <span class="stat-subvalue"><%= formatearCant(tt.bidones) %> bidones</span>
             </div>
         </div>
 
@@ -929,6 +935,5 @@
             document.addEventListener('DOMContentLoaded', function() { switchVentaTab('cantidad'); });
         <% } %>
     </script>
-            return valor.toFixed(2).replace('.', ',');
--e </body>
+</body>
 </html>
