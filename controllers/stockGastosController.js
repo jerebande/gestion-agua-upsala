@@ -8,34 +8,40 @@ class StockGastosController {
     
     async mostrarPanel(req, res) {
         if (!req.session.usuario) return res.redirect("/login");
-        
-        // ⭐ Solo para usuarios gabriel
-        if (req.session.usuario.rol !== 'gabriel') {
-            return res.status(403).send("Acceso denegado. Solo usuarios gabriel pueden acceder.");
-        }
-        
+
+        const esGabriel = req.session.usuario.rol === 'gabriel';
+
         try {
             const usuarioId = req.session.usuario.id;
+            // El stock lo puede ver cualquier usuario autenticado
             const stockActual = await stockGastosModel.obtenerStock(usuarioId);
-            const categorias = await stockGastosModel.obtenerCategorias(usuarioId);
             const movimientos = await stockGastosModel.obtenerMovimientosStock(usuarioId, 20);
-            
+
+            // Los gastos (categorías, resumen, listado) solo se cargan y muestran para 'gabriel'
+            let categorias = [];
+            let resumenGastos = { porCategoria: [], totalGeneral: 0 };
+            let gastosRecientes = [];
             const periodo = req.query.periodo || 'mes';
-            const resumenGastos = await stockGastosModel.obtenerResumenGastos(usuarioId, periodo);
-            const gastosRecientes = await stockGastosModel.obtenerGastos(usuarioId);
-            
+
+            if (esGabriel) {
+                categorias = await stockGastosModel.obtenerCategorias(usuarioId);
+                resumenGastos = await stockGastosModel.obtenerResumenGastos(usuarioId, periodo);
+                gastosRecientes = (await stockGastosModel.obtenerGastos(usuarioId)).slice(0, 20);
+            }
+
             const flash = req.session.flash || null;
             req.session.flash = null;
-            
+
             res.render("stock-gastos", {
                 nombreUsuario: req.session.usuario.nombre,
                 usuarioId,
                 usuarioRol: req.session.usuario.rol,
+                esGabriel,
                 stockActual,
                 categorias,
                 movimientos,
                 resumenGastos,
-                gastosRecientes: gastosRecientes.slice(0, 20),
+                gastosRecientes,
                 periodo,
                 flash
             });
@@ -48,8 +54,8 @@ class StockGastosController {
     // ========== STOCK ==========
     
     async actualizarStock(req, res) {
-        if (!req.session.usuario || req.session.usuario.rol !== 'gabriel') {
-            return res.status(403).json({ error: "No autorizado" });
+        if (!req.session.usuario) {
+            return res.status(401).json({ error: "No autorizado" });
         }
         
         const { cantidad, operacion } = req.body;
@@ -78,8 +84,8 @@ class StockGastosController {
     }
 
     async obtenerStockAPI(req, res) {
-        if (!req.session.usuario || req.session.usuario.rol !== 'gabriel') {
-            return res.status(403).json({ error: "No autorizado" });
+        if (!req.session.usuario) {
+            return res.status(401).json({ error: "No autorizado" });
         }
         
         try {

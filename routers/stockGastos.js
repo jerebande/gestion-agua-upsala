@@ -3,7 +3,7 @@ const router = express.Router();
 const StockGastosController = require("../controllers/stockGastosController");
 const stockGastosController = new StockGastosController();
 
-// Middleware: solo usuarios gabriel
+// Middleware: solo usuarios gabriel (para gastos y edición de stock)
 function soloGabriel(req, res, next) {
     if (!req.session.usuario) {
         return res.redirect("/login");
@@ -14,12 +14,20 @@ function soloGabriel(req, res, next) {
     next();
 }
 
-// Vista principal
-router.get("/stock-gastos", soloGabriel, (req, res) => stockGastosController.mostrarPanel(req, res));
+// Middleware: cualquier usuario autenticado (para ver el stock)
+function verificarAutenticado(req, res, next) {
+    if (!req.session.usuario) {
+        return res.redirect("/login");
+    }
+    next();
+}
+
+// Vista principal — accesible a cualquier usuario logueado; el controller decide qué datos entregar según el rol
+router.get("/stock-gastos", verificarAutenticado, (req, res) => stockGastosController.mostrarPanel(req, res));
 
 // API Stock
-router.get("/api/stock", soloGabriel, (req, res) => stockGastosController.obtenerStockAPI(req, res));
-router.post("/api/stock/actualizar", soloGabriel, (req, res) => stockGastosController.actualizarStock(req, res));
+router.get("/api/stock", verificarAutenticado, (req, res) => stockGastosController.obtenerStockAPI(req, res));
+router.post("/api/stock/actualizar", verificarAutenticado, (req, res) => stockGastosController.actualizarStock(req, res));
 
 // API Categorías
 router.post("/api/categorias-gastos", soloGabriel, (req, res) => stockGastosController.crearCategoria(req, res));

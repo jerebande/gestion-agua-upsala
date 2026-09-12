@@ -225,9 +225,12 @@ class ClienteModel {
         return result;
     }
 
-    async registrarPagoParcial(idCuenta, montoPagado) {
+    // estadoPago: 1 = pagado (efectivo), 2 = transferencia
+    async registrarPagoParcial(idCuenta, montoPagado, estadoPago = 1) {
         const cuenta = await this.obtenerCuentaPorId(idCuenta);
         if (!cuenta) throw new Error('Cuenta no encontrada');
+
+        estadoPago = parseInt(estadoPago) === 2 ? 2 : 1;
 
         const cantidadActual = Number(cuenta.cantidad_bidones) || 0;
         const precio = Number(cuenta.precio_bidon) || 0;
@@ -237,8 +240,8 @@ class ClienteModel {
         if (montoPagado > totalActual) throw new Error('El monto pagado no puede superar el total de la cuenta');
 
         if (Math.abs(montoPagado - totalActual) < 0.01) {
-            const sqlUpdate = `UPDATE cuentas SET estado_pago = 1, total = ? WHERE id = ?`;
-            const [result] = await pool.query(sqlUpdate, [totalActual, idCuenta]);
+            const sqlUpdate = `UPDATE cuentas SET estado_pago = ?, total = ? WHERE id = ?`;
+            const [result] = await pool.query(sqlUpdate, [estadoPago, totalActual, idCuenta]);
             return result;
         } else {
             const cantidadPagada = montoPagado / precio;
@@ -251,9 +254,9 @@ class ClienteModel {
 
             const sqlInsertPago = `
                 INSERT INTO cuentas (cliente_id, estado_pago, cantidad_bidones, precio_bidon, total)
-                VALUES (?, 1, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
             `;
-            const [result] = await pool.query(sqlInsertPago, [cuenta.cliente_id, cantidadPagada, precio, totalPagado]);
+            const [result] = await pool.query(sqlInsertPago, [cuenta.cliente_id, estadoPago, cantidadPagada, precio, totalPagado]);
             return result;
         }
     }

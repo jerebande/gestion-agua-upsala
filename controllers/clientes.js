@@ -191,6 +191,8 @@ class ClienteController {
         if (!req.session.usuario) return res.redirect("/login");
         const { idCliente, idCuenta } = req.params;
         const monto_pagado = parseFloat(req.body.monto_pagado);
+        // 1 = efectivo (pagado), 2 = transferencia
+        const estado_pago = parseInt(req.body.estado_pago) === 2 ? 2 : 1;
         const usuarioId = req.session.usuario.id;
 
         if (!monto_pagado || monto_pagado <= 0) {
@@ -203,7 +205,7 @@ class ClienteController {
             const cliente = await clienteModel.obtenerClientePorId(cuenta.cliente_id, usuarioId);
             if (!cliente) return res.status(403).send("No tiene permiso para modificar esta cuenta.");
 
-            await clienteModel.registrarPagoParcial(idCuenta, monto_pagado);
+            await clienteModel.registrarPagoParcial(idCuenta, monto_pagado, estado_pago);
             res.redirect(`/clientes/${idCliente}`);
         } catch (error) {
             console.error('Error al registrar pago parcial:', error);
@@ -263,8 +265,8 @@ class ClienteController {
                 return res.status(400).send("Debe ingresar un monto o una cantidad.");
             }
 
-            // ⭐ DESCONTAR STOCK AUTOMÁTICAMENTE (solo para usuario gabriel)
-            if (usuarioRol === 'gabriel' && cantidadFinal > 0) {
+            // ⭐ DESCONTAR STOCK AUTOMÁTICAMENTE (para cualquier usuario, sin importar el estado de pago)
+            if (cantidadFinal > 0) {
                 try {
                     const stockActual = await stockGastosModel.obtenerStock(usuarioId);
                     const tipoPago = estado_pago == 1 ? 'Pagado' : 

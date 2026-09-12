@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -149,6 +149,83 @@
 
         .btn-partial {
             background: #ffc107;
+        }
+
+        .btn-transfer {
+            background: #0d6efd;
+        }
+
+        .metodo-pago-content {
+            max-width: 340px;
+        }
+
+        .metodo-pago-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-metodo {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 10px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: filter 0.2s;
+        }
+
+        .btn-metodo:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-metodo i {
+            font-size: 1.4rem;
+        }
+
+        .btn-metodo-efectivo {
+            background: #28a745;
+        }
+
+        .btn-metodo-transferencia {
+            background: #0d6efd;
+        }
+
+        .metodo-pago-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-metodo-toggle {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-metodo-toggle.active {
+            color: white;
+            border-color: transparent;
+        }
+
+        #btnMetodoEfectivo.active {
+            background: #28a745;
+        }
+
+        #btnMetodoTransferencia.active {
+            background: #0d6efd;
         }
 
         .btn-delete {
@@ -454,7 +531,7 @@
                                                 <div class="payment-group">
                                                     <form action="/clientes/<%= cliente.id %>/cuentas/<%= cuenta.id %>/actualizarEstadoPago" method="POST" style="display: inline;" class="form-pago-completo">
                                                         <input type="hidden" name="estado_pago" value="1">
-                                                        <button type="button" class="btn-payment btn-complete" title="Pago completo" onclick="confirmarPagoCompleto(this)">
+                                                        <button type="button" class="btn-payment btn-complete" title="Pago completo" onclick="abrirMetodoPagoModal(this.closest('form'))">
                                                             <i class="fas fa-check-circle"></i>   
                                                             <span class="btn-text">Pago completo</span>
                                                         </button>
@@ -621,6 +698,28 @@
         </section>
         <% } %>
 
+        <!-- Modal Método de Pago (Pago completo) -->
+        <div id="metodoPagoModal" class="modal-overlay" style="display: none;">
+            <div class="modal-content metodo-pago-content">
+                <div class="modal-header">
+                    <h3>¿Cómo se pagó?</h3>
+                    <button type="button" class="modal-close" onclick="cerrarMetodoPagoModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="metodo-pago-buttons">
+                        <button type="button" class="btn-metodo btn-metodo-efectivo" onclick="confirmarMetodoPago(1)">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Efectivo</span>
+                        </button>
+                        <button type="button" class="btn-metodo btn-metodo-transferencia" onclick="confirmarMetodoPago(2)">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Transferencia</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal Pago Parcial -->
         <div id="partialPaymentModal" class="modal-overlay" style="display: none;">
             <div class="modal-content">
@@ -666,6 +765,19 @@
                         </div>
 
                         <input type="hidden" id="montoFinal" name="monto_pagado">
+                        <input type="hidden" id="metodoPagoParcial" name="estado_pago" value="1">
+
+                        <div class="form-group">
+                            <label>¿Cómo se pagó?</label>
+                            <div class="metodo-pago-toggle">
+                                <button type="button" id="btnMetodoEfectivo" class="btn-metodo-toggle active" onclick="seleccionarMetodoParcial(1)">
+                                    <i class="fas fa-money-bill-wave"></i> Efectivo
+                                </button>
+                                <button type="button" id="btnMetodoTransferencia" class="btn-metodo-toggle" onclick="seleccionarMetodoParcial(2)">
+                                    <i class="fas fa-exchange-alt"></i> Transferencia
+                                </button>
+                            </div>
+                        </div>
 
                         <div class="payment-breakdown">
                             <div class="breakdown-row">
@@ -709,15 +821,30 @@
             }
         }
 
-        // ── Confirmar pago completo ───────────────────────────────────────────
-        function confirmarPagoCompleto(btn) {
-            alertify.confirm(
-                'Confirmar pago',
-                '¿Marcar esta cuenta como pagada?',
-                function() { btn.closest('form').submit(); },
-                function() {}
-            ).set('labels', { ok: 'Sí, marcar pagado', cancel: 'Cancelar' });
+        // ── Método de pago para "Pago completo" ─────────────────────────────────
+        let formPagoCompletoActivo = null;
+
+        function abrirMetodoPagoModal(form) {
+            formPagoCompletoActivo = form;
+            document.getElementById('metodoPagoModal').style.display = 'flex';
         }
+
+        function cerrarMetodoPagoModal() {
+            document.getElementById('metodoPagoModal').style.display = 'none';
+            formPagoCompletoActivo = null;
+        }
+
+        function confirmarMetodoPago(estadoPago) {
+            if (!formPagoCompletoActivo) return;
+            formPagoCompletoActivo.querySelector('input[name="estado_pago"]').value = estadoPago;
+            const form = formPagoCompletoActivo;
+            cerrarMetodoPagoModal();
+            form.submit();
+        }
+
+        document.getElementById('metodoPagoModal').addEventListener('click', function(e) {
+            if (e.target === this) cerrarMetodoPagoModal();
+        });
 
         // ── Confirmar eliminar cuenta ─────────────────────────────────────────
         function confirmarEliminarCuenta(btn) {
@@ -757,6 +884,12 @@
         const originalQtySpan = document.getElementById('originalQty');
         const unitPriceSpan = document.getElementById('unitPrice');
 
+        function seleccionarMetodoParcial(estadoPago) {
+            document.getElementById('metodoPagoParcial').value = estadoPago;
+            document.getElementById('btnMetodoEfectivo').classList.toggle('active', estadoPago === 1);
+            document.getElementById('btnMetodoTransferencia').classList.toggle('active', estadoPago === 2);
+        }
+
         function openPartialPaymentModal(cuentaId, clienteId, cantidad, precio) {
             currentCuentaId = cuentaId;
             currentClienteId = clienteId;
@@ -770,6 +903,7 @@
             paidAmountSpan.textContent = '0,00';
             remainingSpan.textContent = formatearMonto(total);
             montoFinalInput.value = '';
+            seleccionarMetodoParcial(1);
             switchPaymentTab('cantidad');
             modal.style.display = 'flex';
         }

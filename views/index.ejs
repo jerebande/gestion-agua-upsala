@@ -1016,15 +1016,15 @@
         <% } %>
         <% if (nombreUsuario) { %>
 
-            <!-- ⭐ DASHBOARD DE STOCK Y GASTOS (solo gabriel) -->
-            <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'gabriel') { %>
+            <!-- ⭐ DASHBOARD DE STOCK (todos los usuarios) Y GASTOS (solo gabriel) -->
+            <% if (typeof usuarioRol !== 'undefined' && usuarioRol) { %>
             <div class="dashboard-section">
                 <h2 class="dashboard-section-title">
                     <i class="fas fa-tachometer-alt"></i>
                     Panel de Control
                 </h2>
                 <div class="dashboard-grid">
-                    <!-- Tarjeta de STOCK -->
+                    <!-- Tarjeta de STOCK: visible para cualquier usuario logueado (gabriel, admin, usuario) -->
                     <div class="dashboard-panel-card stock-card">
                         <div class="panel-card-header">
                             <div class="panel-card-icon">
@@ -1051,7 +1051,8 @@
                         </div>
                     </div>
 
-                    <!-- Tarjeta de GASTOS -->
+                    <% if (usuarioRol === 'gabriel') { %>
+                    <!-- Tarjeta de GASTOS: solo gabriel -->
                     <div class="dashboard-panel-card gastos-card">
                         <div class="panel-card-header">
                             <div class="panel-card-icon">
@@ -1098,6 +1099,7 @@
                             <i class="fas fa-plus-circle"></i> Registrar nuevo gasto
                         </button>
                     </div>
+                    <% } %>
                 </div>
             </div>
             <% } %>
@@ -1561,21 +1563,9 @@
         <% } %>
 
         // ═══════════════════════════════════════════════════════════════
-        // ⭐ DASHBOARD DE STOCK Y GASTOS (solo gabriel)
+        // ⭐ STOCK (visible y editable para cualquier usuario logueado)
         // ═══════════════════════════════════════════════════════════════
-        <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'gabriel') { %>
-
-        let periodoActual = '7dias';
-        let categoriasGastos = [];
-
-        // ── Formatear fecha local (evita desfase UTC) ─────────────────────────
-        function formatearFechaLocal(d) {
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
+        <% if (typeof usuarioRol !== 'undefined' && usuarioRol) { %>
         // ── Cargar stock ──────────────────────────────────────────────────────
         async function cargarStock() {
             try {
@@ -1588,6 +1578,7 @@
                 console.error('Error al cargar stock:', e);
             }
         }
+        document.addEventListener('DOMContentLoaded', cargarStock);
 
         // ── Actualizar stock ──────────────────────────────────────────────────
         async function actualizarStock(operacion) {
@@ -1619,6 +1610,23 @@
             } catch (e) {
                 alertify.error('Error de conexión.');
             }
+        }
+        <% } %>
+
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ DASHBOARD DE GASTOS (solo gabriel)
+        // ═══════════════════════════════════════════════════════════════
+        <% if (typeof usuarioRol !== 'undefined' && usuarioRol === 'gabriel') { %>
+
+        let periodoActual = '7dias';
+        let categoriasGastos = [];
+
+        // ── Formatear fecha local (evita desfase UTC) ─────────────────────────
+        function formatearFechaLocal(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
         // ── Cargar gastos ─────────────────────────────────────────────────────
@@ -1965,8 +1973,6 @@
 
         // Cargar datos al inicio
         document.addEventListener('DOMContentLoaded', function() {
-            cargarStock();
-            
             const fechaInput = document.getElementById('fechaEspecifica');
             if (fechaInput) {
                 fechaInput.value = formatearFechaLocal(new Date());
