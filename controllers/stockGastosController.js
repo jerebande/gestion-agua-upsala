@@ -166,6 +166,10 @@ class StockGastosController {
         if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
             return res.status(400).json({ error: "Monto inválido" });
         }
+
+        if (req.body.fecha_gasto && isNaN(Date.parse(req.body.fecha_gasto))) {
+            return res.status(400).json({ error: "Fecha inválida" });
+        }
         
         try {
             const gastoId = await stockGastosModel.registrarGasto(
@@ -179,6 +183,46 @@ class StockGastosController {
             res.json({ success: true, gastoId });
         } catch (error) {
             console.error("Error al registrar gasto:", error);
+            res.status(500).json({ error: "Error del servidor" });
+        }
+    }
+
+    async actualizarGasto(req, res) {
+        if (!req.session.usuario || req.session.usuario.rol !== 'gabriel') {
+            return res.status(403).json({ error: "No autorizado" });
+        }
+
+        const { id } = req.params;
+        const { categoria_id, monto, descripcion, fecha_gasto } = req.body;
+        const usuarioId = req.session.usuario.id;
+
+        if (!categoria_id) {
+            return res.status(400).json({ error: "Seleccioná una categoría" });
+        }
+
+        if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
+            return res.status(400).json({ error: "Monto inválido" });
+        }
+
+        if (!fecha_gasto || isNaN(Date.parse(fecha_gasto))) {
+            return res.status(400).json({ error: "Fecha inválida" });
+        }
+
+        try {
+            const actualizado = await stockGastosModel.actualizarGasto(id, usuarioId, {
+                categoria_id,
+                monto: parseFloat(monto),
+                descripcion: descripcion || null,
+                fecha_gasto
+            });
+
+            if (actualizado) {
+                res.json({ success: true });
+            } else {
+                res.status(404).json({ error: "Gasto no encontrado" });
+            }
+        } catch (error) {
+            console.error("Error al actualizar gasto:", error);
             res.status(500).json({ error: "Error del servidor" });
         }
     }

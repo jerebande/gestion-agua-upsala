@@ -872,6 +872,28 @@
             word-break: break-all;
         }
 
+        .btn-ver-mas-gastos {
+            width: 100%;
+            padding: 10px;
+            margin-top: 4px;
+            background: #f0f2f5;
+            color: rgb(0, 0, 128);
+            border: 1px dashed #c9cede;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-ver-mas-gastos:hover {
+            background: #e4e7ee;
+        }
+
         .btn-nuevo-gasto {
             width: 100%;
             padding: 13px;
@@ -1620,6 +1642,8 @@
 
         let periodoActual = '7dias';
         let categoriasGastos = [];
+        const GASTOS_POR_PAGINA = 10;
+        let gastosMostrados = GASTOS_POR_PAGINA;
 
         // ── Formatear fecha local (evita desfase UTC) ─────────────────────────
         function formatearFechaLocal(d) {
@@ -1685,54 +1709,11 @@
                 gastos.forEach(g => { total += parseFloat(g.monto) || 0; });
                 document.getElementById('gastosTotal').textContent = '$' + total.toFixed(2).replace('.', ',');
                 
-                // Renderizar lista
-                if (gastos.length === 0) {
-                    const mensajeVacio = periodoActual === 'especifico' 
-                        ? 'No hay gastos en la fecha seleccionada'
-                        : 'No hay gastos en este período';
-                    lista.innerHTML = `
-                        <div class="gastos-empty">
-                            <i class="fas fa-inbox"></i>
-                            <p>${mensajeVacio}</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                lista.innerHTML = gastos.map(g => {
-                    const fecha = new Date(g.fecha_gasto + 'T12:00:00').toLocaleDateString('es-AR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: '2-digit'
-                    });
-                    const monto = parseFloat(g.monto).toFixed(2).replace('.', ',');
-                    const descripcion = g.descripcion ? `<div class="gasto-descripcion">${g.descripcion}</div>` : '';
-                    
-                    return `
-                        <div class="gasto-item">
-                            <div class="gasto-icono">
-                                <i class="fas fa-receipt"></i>
-                            </div>
-                            <div class="gasto-info">
-                                <div class="gasto-categoria">${g.categoria_nombre}</div>
-                                <div class="gasto-fecha">${fecha}</div>
-                                ${descripcion}
-                            </div>
-                            <div class="gasto-monto">$${monto}</div>
-                            <div class="gasto-acciones">
-                                <button class="btn-gasto-accion btn-gasto-editar" onclick="editarGasto(${g.id})" title="Editar">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="btn-gasto-accion btn-gasto-eliminar" onclick="eliminarGasto(${g.id})" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
+                // Renderizar lista (paginada, con "ver más")
                 window._gastosCache = gastos;
-                
+                gastosMostrados = GASTOS_POR_PAGINA;
+                renderGastosLista();
+
                 if (categoriasGastos.length === 0) {
                     cargarCategorias();
                 }
@@ -1749,6 +1730,74 @@
                     </div>
                 `;
             }
+        }
+
+        // ── Renderizar lista de gastos (paginada) ───────────────────────────────
+        function renderGastosLista() {
+            const lista = document.getElementById('gastosLista');
+            const gastos = window._gastosCache || [];
+
+            if (gastos.length === 0) {
+                const mensajeVacio = periodoActual === 'especifico'
+                    ? 'No hay gastos en la fecha seleccionada'
+                    : 'No hay gastos en este período';
+                lista.innerHTML = `
+                    <div class="gastos-empty">
+                        <i class="fas fa-inbox"></i>
+                        <p>${mensajeVacio}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const gastosAMostrar = gastos.slice(0, gastosMostrados);
+
+            const itemsHtml = gastosAMostrar.map(g => {
+                const fecha = new Date(g.fecha_gasto + 'T12:00:00').toLocaleDateString('es-AR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: '2-digit'
+                });
+                const monto = parseFloat(g.monto).toFixed(2).replace('.', ',');
+                const descripcion = g.descripcion ? `<div class="gasto-descripcion">${g.descripcion}</div>` : '';
+
+                return `
+                    <div class="gasto-item">
+                        <div class="gasto-icono">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <div class="gasto-info">
+                            <div class="gasto-categoria">${g.categoria_nombre}</div>
+                            <div class="gasto-fecha">${fecha}</div>
+                            ${descripcion}
+                        </div>
+                        <div class="gasto-monto">$${monto}</div>
+                        <div class="gasto-acciones">
+                            <button class="btn-gasto-accion btn-gasto-editar" onclick="editarGasto(${g.id})" title="Editar">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="btn-gasto-accion btn-gasto-eliminar" onclick="eliminarGasto(${g.id})" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const quedan = gastos.length - gastosAMostrar.length;
+            const botonVerMas = quedan > 0
+                ? `<button class="btn-ver-mas-gastos" onclick="verMasGastos()">
+                       <i class="fas fa-chevron-down"></i> Ver más (${quedan})
+                   </button>`
+                : '';
+
+            lista.innerHTML = itemsHtml + botonVerMas;
+        }
+
+        // ── Mostrar 10 gastos más de la lista ya cargada ────────────────────────
+        function verMasGastos() {
+            gastosMostrados += GASTOS_POR_PAGINA;
+            renderGastosLista();
         }
 
         // ── Cambiar período ───────────────────────────────────────────────────
