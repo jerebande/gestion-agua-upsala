@@ -1753,7 +1753,7 @@
             const gastosAMostrar = gastos.slice(0, gastosMostrados);
 
             const itemsHtml = gastosAMostrar.map(g => {
-                const fecha = new Date(g.fecha_gasto + 'T12:00:00').toLocaleDateString('es-AR', {
+                const fecha = new Date(g.fecha_gasto.split('T')[0] + 'T12:00:00').toLocaleDateString('es-AR', {
                     day: '2-digit',
                     month: '2-digit',
                     year: '2-digit'
