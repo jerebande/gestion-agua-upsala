@@ -9,7 +9,7 @@ function esFechaValida(fecha) {
     if (typeof fecha !== 'string') return false;
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
     if (!match) return false;
-    const [, y, m, d] = match.slice(1).map(Number);
+    const [, y, m, d] = match.map(Number);
     const fechaObj = new Date(y, m - 1, d);
     return fechaObj.getFullYear() === y && fechaObj.getMonth() === m - 1 && fechaObj.getDate() === d;
 }
