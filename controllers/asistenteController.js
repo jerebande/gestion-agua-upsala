@@ -95,7 +95,7 @@ class AsistenteController {
 
             if (!estado.intent) {
                 if (!extraido.intent || extraido.intent === 'otro') {
-                    respuesta = this.mensajeAyuda();
+                    respuesta = this.mensajeAyuda(req.session.usuario.rol);
                 } else {
                     estado.intent = extraido.intent;
                     estado.datos = {};
@@ -115,13 +115,17 @@ class AsistenteController {
         }
     }
 
-    mensajeAyuda() {
-        return "Soy WalterBot 🤖. Puedo ayudarte a:\n" +
+    mensajeAyuda(rol) {
+        let msg = "Soy WalterBot 🤖. Puedo ayudarte a:\n" +
             "• Crear un cliente nuevo (ej: \"creá un cliente que se llama Juan Pérez, vive en Av Siempre Viva 742, el tel es 1122334455, reparto los lunes\")\n" +
             "• Registrar una entrega (ej: \"a Juan Pérez llevale 3 bidones, quedó fiado\")\n" +
             "• Saldar un fiado (ej: \"cobrale el fiado a Juan, pagó todo en efectivo\")\n" +
-            "• Cambiar el precio del bidón (ej: \"el bidón ahora sale 2500\")\n\n" +
-            "Contame todo junto, como quieras decirlo, y voy completando lo que falte. En cualquier momento podés escribir \"cancelar\".";
+            "• Cambiar el precio del bidón (ej: \"el bidón ahora sale 2500\")";
+        if (rol === 'gabriel') {
+            msg += "\n• Consultar tus gastos (ej: \"decime los gastos del miércoles 9 de septiembre\", \"los gastos entre el martes y el jueves\", \"cuánto gasté en los últimos 3 días\")";
+        }
+        msg += "\n\nContame todo junto, como quieras decirlo, y voy completando lo que falte. En cualquier momento podés escribir \"cancelar\".";
+        return msg;
     }
 
     // Vuelca lo que Groq extrajo del mensaje sobre los datos ya guardados de la conversación,
@@ -169,6 +173,12 @@ class AsistenteController {
             if (ex.nuevo_precio != null && !d.nuevo_precio) d.nuevo_precio = ex.nuevo_precio;
             return;
         }
+
+        if (estado.intent === 'consultar_gastos') {
+            if (ex.fecha_inicio && !d.fecha_inicio) d.fecha_inicio = ex.fecha_inicio;
+            if (ex.fecha_fin && !d.fecha_fin) d.fecha_fin = ex.fecha_fin;
+            return;
+        }
     }
 
     async avanzar(req) {
@@ -178,9 +188,10 @@ class AsistenteController {
             case 'registrar_venta': return await this.avanzarRegistrarVenta(req);
             case 'pagar_fiado': return await this.avanzarPagarFiado(req);
             case 'cambiar_precio': return await this.avanzarCambiarPrecio(req);
+            case 'consultar_gastos': return await this.avanzarConsultarGastos(req);
             default:
                 req.session.asistente = estadoVacio();
-                return this.mensajeAyuda();
+                return this.mensajeAyuda(req.session.usuario.rol);
         }
     }
 
@@ -414,6 +425,51 @@ class AsistenteController {
             req.session.asistente = estadoVacio();
             return `Listo ✅ Registré un pago parcial de $${formatearMoneda(montoParcial)} (${d.metodoPago === 1 ? 'efectivo' : 'transferencia'}) para ${cliente.nombre}.`;
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONSULTAR GASTOS (solo usuario 'gabriel')
+    // ═══════════════════════════════════════════════════════════════════════
+    async avanzarConsultarGastos(req) {
+        const estado = req.session.asistente;
+        const rol = req.session.usuario.rol;
+        const d = estado.datos;
+
+        if (rol !== 'gabriel') {
+            req.session.asistente = estadoVacio();
+            return "La consulta de gastos solo está disponible para el usuario gabriel.";
+        }
+
+        if (!d.fecha_inicio || !d.fecha_fin) {
+            estado.paso = 'rango_fechas';
+            return "¿De qué fecha o rango de fechas querés ver los gastos? (ej: \"el miércoles 9 de septiembre\", \"entre el martes y el jueves\", \"los últimos 3 días\")";
+        }
+
+        return await this.ejecutarConsultaGastos(req);
+    }
+
+    async ejecutarConsultaGastos(req) {
+        const estado = req.session.asistente;
+        const usuarioId = req.session.usuario.id;
+        const d = estado.datos;
+
+        const gastos = await stockGastosModel.obtenerGastos(usuarioId, d.fecha_inicio, d.fecha_fin);
+        req.session.asistente = estadoVacio();
+
+        const rangoTexto = d.fecha_inicio === d.fecha_fin
+            ? formatearFecha(d.fecha_inicio)
+            : `${formatearFecha(d.fecha_inicio)} al ${formatearFecha(d.fecha_fin)}`;
+
+        if (!gastos || gastos.length === 0) {
+            return `No encontré gastos registrados entre el ${rangoTexto}.`;
+        }
+
+        const total = gastos.reduce((acc, g) => acc + parseFloat(g.monto), 0);
+        const lista = gastos.map(g =>
+            `• ${formatearFecha(g.fecha_gasto)} - ${g.categoria_nombre}: $${formatearMoneda(g.monto)}${g.descripcion ? ' (' + g.descripcion + ')' : ''}`
+        ).join("\n");
+
+        return `Gastos del ${rangoTexto}:\n${lista}\n\nTotal: $${formatearMoneda(total)} (${gastos.length} ${gastos.length === 1 ? 'gasto' : 'gastos'}).`;
     }
 }
 

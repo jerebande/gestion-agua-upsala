@@ -3,6 +3,7 @@
 // y devuelve datos estructurados en vez de depender de expresiones regulares.
 // NOTA: transcribirAudio() usa fetch/FormData/Blob globales — requiere Node 18 o superior.
 const https = require("https");
+const { obtenerFechaLocal } = require("../utils/fecha");
 
 const HERRAMIENTA = {
     type: "function",
@@ -14,8 +15,8 @@ const HERRAMIENTA = {
             properties: {
                 intent: {
                     type: "string",
-                    enum: ["crear_cliente", "registrar_venta", "pagar_fiado", "cambiar_precio", "otro"],
-                    description: "Qué quiere hacer el usuario. Si ya había una conversación en curso (ver contexto) y el mensaje es una respuesta a lo que se le preguntó, usá el mismo intent que ya estaba activo. Usá 'cambiar_precio' cuando el usuario quiere actualizar/cambiar el precio del bidón de agua."
+                    enum: ["crear_cliente", "registrar_venta", "pagar_fiado", "cambiar_precio", "consultar_gastos", "otro"],
+                    description: "Qué quiere hacer el usuario. Si ya había una conversación en curso (ver contexto) y el mensaje es una respuesta a lo que se le preguntó, usá el mismo intent que ya estaba activo. Usá 'cambiar_precio' cuando el usuario quiere actualizar/cambiar el precio del bidón de agua. Usá 'consultar_gastos' cuando el usuario quiere saber cuánto gastó, o pide el detalle/listado de gastos, en una fecha puntual o en un rango de fechas (ej: 'los gastos del miércoles 9 de septiembre', 'dame los gastos entre el martes y el jueves', 'cuánto gasté en los últimos 3 días'). Este intent solo tiene sentido si 'rol_del_usuario' es 'gabriel'; si el usuario no es 'gabriel' y pregunta por gastos, usá 'otro'."
                 },
                 nombre: { type: ["string", "null"], description: "Nombre del cliente que se quiere crear." },
                 direccion: { type: ["string", "null"], description: "Domicilio del cliente que se quiere crear (calle y número), sin incluir la palabra 'dirección' o 'domicilio'." },
@@ -30,6 +31,8 @@ const HERRAMIENTA = {
                 metodo_pago: { type: ["integer", "null"], enum: [1, 2, null], description: "Método con el que se pagó/saldó: 1 = efectivo, 2 = transferencia." },
                 eleccion_numero: { type: ["integer", "null"], description: "Si el usuario está eligiendo una opción de una lista numerada que se le mostró antes (ej: responde '2', 'el segundo', 'la opción 3'), el número elegido." },
                 nuevo_precio: { type: ["number", "null"], description: "Nuevo precio en pesos del bidón de agua, cuando el usuario quiere cambiar/actualizar ese precio." },
+                fecha_inicio: { type: ["string", "null"], description: "Fecha desde la cual se quieren consultar los gastos (intent 'consultar_gastos'), en formato YYYY-MM-DD. Resolvela vos en base a 'fecha_actual' y lo que diga el mensaje (un día de la semana, una fecha puntual, 'los últimos N días', 'esta semana', etc). Si el usuario menciona una sola fecha o un solo día, fecha_inicio debe ser igual a fecha_fin." },
+                fecha_fin: { type: ["string", "null"], description: "Fecha hasta la cual (inclusive) se quieren consultar los gastos (intent 'consultar_gastos'), en formato YYYY-MM-DD. Resolvela igual que fecha_inicio, en base a 'fecha_actual'." },
                 cancelar: { type: "boolean", description: "true si el usuario quiere cancelar, abortar o reiniciar la operación en curso (ej: 'cancelar', 'dejalo', 'olvidalo', 'empecemos de nuevo')." }
             },
             required: ["intent", "cancelar"]
@@ -108,7 +111,8 @@ async function interpretarMensaje(texto, estado, rolUsuario) {
     const contexto = {
         intent_en_curso: estado.intent,
         datos_ya_conocidos: estado.datos,
-        rol_del_usuario: rolUsuario
+        rol_del_usuario: rolUsuario,
+        fecha_actual: obtenerFechaLocal()
     };
 
     const systemPrompt =
@@ -116,7 +120,8 @@ async function interpretarMensaje(texto, estado, rolUsuario) {
         "Tu única tarea es leer el mensaje del usuario y devolver, llamando a la función 'extraer_datos', los campos que puedas identificar con certeza. " +
         "No inventes ni asumas datos que no estén realmente en el mensaje: dejalos en null si no aparecen. " +
         "Si ya hay una conversación en curso (ver 'intent_en_curso' y 'datos_ya_conocidos') y el mensaje del usuario es una respuesta a lo que se le preguntó, interpretalo en ese contexto — mantené el mismo intent y completá el o los campos que falten. " +
-        "Si el mensaje no tiene nada que ver con crear un cliente, registrar una venta/entrega, saldar un fiado o cambiar el precio del bidón, y tampoco hay una conversación en curso, usá intent 'otro'. " +
+        "Si el mensaje no tiene nada que ver con crear un cliente, registrar una venta/entrega, saldar un fiado, cambiar el precio del bidón o consultar gastos, y tampoco hay una conversación en curso, usá intent 'otro'. " +
+        "Para 'consultar_gastos': el campo 'fecha_actual' del contexto te dice qué día es hoy (formato YYYY-MM-DD). Resolvé fecha_inicio y fecha_fin en ese mismo formato usando 'fecha_actual' como referencia. Ejemplos: si dice un día puntual o una fecha ('el miércoles', 'el 9 de septiembre', 'el miércoles 9 de septiembre'), fecha_inicio y fecha_fin son esa misma fecha. Si dice un rango entre dos días ('entre el martes y el jueves', 'del lunes al viernes'), fecha_inicio es el primer día del rango y fecha_fin el segundo, tomando la semana más reciente que corresponda respecto a 'fecha_actual'. Si dice 'los últimos N días' o 'en N días', fecha_inicio es N-1 días antes de 'fecha_actual' y fecha_fin es 'fecha_actual'. Si dice 'hoy', fecha_inicio y fecha_fin son 'fecha_actual'; si dice 'ayer', ambas son el día anterior. Si no da ninguna referencia de fecha, dejá fecha_inicio y fecha_fin en null. " +
         "Un mensaje puede traer varios datos a la vez (por ejemplo nombre, dirección y teléfono juntos): extraé todos los que reconozcas en la misma respuesta. " +
         "Respondé ÚNICAMENTE llamando a la función, sin texto adicional.\n\n" +
         "Contexto actual (JSON):\n" + JSON.stringify(contexto, null, 2);
