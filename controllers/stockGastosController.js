@@ -2,6 +2,18 @@ const StockGastosModel = require("../models/stockGastos");
 const stockGastosModel = new StockGastosModel();
 const { obtenerFechaLocal } = require("../utils/fecha");
 
+// Valida fechas en formato ISO estricto (YYYY-MM-DD), evitando la ambigüedad
+// de Date.parse() con formatos regionales (ej: interpreta "15/09/2026" como
+// mes 15, día 9 -> NaN -> "fecha inválida" para cualquier día > 12).
+function esFechaValida(fecha) {
+    if (typeof fecha !== 'string') return false;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+    if (!match) return false;
+    const [, y, m, d] = match.slice(1).map(Number);
+    const fechaObj = new Date(y, m - 1, d);
+    return fechaObj.getFullYear() === y && fechaObj.getMonth() === m - 1 && fechaObj.getDate() === d;
+}
+
 class StockGastosController {
     
     // ========== VISTA PRINCIPAL ==========
@@ -183,7 +195,7 @@ class StockGastosController {
             return res.status(400).json({ error: "Monto inválido" });
         }
 
-        if (req.body.fecha_gasto && isNaN(Date.parse(req.body.fecha_gasto))) {
+        if (req.body.fecha_gasto && !esFechaValida(req.body.fecha_gasto)) {
             return res.status(400).json({ error: "Fecha inválida" });
         }
         
@@ -220,7 +232,7 @@ class StockGastosController {
             return res.status(400).json({ error: "Monto inválido" });
         }
 
-        if (!fecha_gasto || isNaN(Date.parse(fecha_gasto))) {
+        if (!fecha_gasto || !esFechaValida(fecha_gasto)) {
             return res.status(400).json({ error: "Fecha inválida" });
         }
 
