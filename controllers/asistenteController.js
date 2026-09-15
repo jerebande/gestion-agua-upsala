@@ -6,6 +6,7 @@ const usuarioModel = new UsuarioModel();
 const StockGastosModel = require("../models/stockGastos");
 const stockGastosModel = new StockGastosModel();
 const { interpretarMensaje, transcribirAudio } = require("../services/asistenteNLU");
+const { obtenerFechaLocal } = require("../utils/fecha");
 
 function estadoVacio() {
     return { intent: null, paso: null, datos: {} };
@@ -123,6 +124,7 @@ class AsistenteController {
             "• Cambiar el precio del bidón (ej: \"el bidón ahora sale 2500\")";
         if (rol === 'gabriel') {
             msg += "\n• Consultar tus gastos (ej: \"decime los gastos del miércoles 9 de septiembre\", \"los gastos entre el martes y el jueves\", \"cuánto gasté en los últimos 3 días\")";
+            msg += "\n• Registrar un gasto nuevo (ej: \"gasté 5000 en nafta\", \"anotá un gasto de mantenimiento de la moto por 12000\")";
         }
         msg += "\n\nContame todo junto, como quieras decirlo, y voy completando lo que falte. En cualquier momento podés escribir \"cancelar\".";
         return msg;
@@ -179,6 +181,14 @@ class AsistenteController {
             if (ex.fecha_fin && !d.fecha_fin) d.fecha_fin = ex.fecha_fin;
             return;
         }
+
+        if (estado.intent === 'registrar_gasto') {
+            if (ex.categoria_nombre && !d.categoria && !d.categoriaNombre) d.categoriaNombre = ex.categoria_nombre;
+            if (ex.monto != null && !d.monto) d.monto = ex.monto;
+            if (ex.descripcion !== null && ex.descripcion !== undefined && d.descripcion === undefined) d.descripcion = ex.descripcion;
+            if (ex.fecha_gasto && !d.fecha_gasto) d.fecha_gasto = ex.fecha_gasto;
+            return;
+        }
     }
 
     async avanzar(req) {
@@ -189,6 +199,7 @@ class AsistenteController {
             case 'pagar_fiado': return await this.avanzarPagarFiado(req);
             case 'cambiar_precio': return await this.avanzarCambiarPrecio(req);
             case 'consultar_gastos': return await this.avanzarConsultarGastos(req);
+            case 'registrar_gasto': return await this.avanzarRegistrarGasto(req);
             default:
                 req.session.asistente = estadoVacio();
                 return this.mensajeAyuda(req.session.usuario.rol);
@@ -470,6 +481,81 @@ class AsistenteController {
         ).join("\n");
 
         return `Gastos del ${rangoTexto}:\n${lista}\n\nTotal: $${formatearMoneda(total)} (${gastos.length} ${gastos.length === 1 ? 'gasto' : 'gastos'}).`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // REGISTRAR GASTO (solo usuario 'gabriel')
+    // ═══════════════════════════════════════════════════════════════════════
+    async avanzarRegistrarGasto(req) {
+        const estado = req.session.asistente;
+        const rol = req.session.usuario.rol;
+        const usuarioId = req.session.usuario.id;
+        const d = estado.datos;
+
+        if (rol !== 'gabriel') {
+            req.session.asistente = estadoVacio();
+            return "Registrar gastos solo está disponible para el usuario gabriel.";
+        }
+
+        if (!d.categoria) {
+            if (!d.categoriaNombre) {
+                estado.paso = 'categoria';
+                return "Dale, vamos a registrar un gasto. ¿En qué categoría? (ej: combustible, mantenimiento, insumos)";
+            }
+
+            const nombreBuscado = d.categoriaNombre.trim();
+            const categorias = await stockGastosModel.obtenerCategorias(usuarioId);
+            let categoria = categorias.find(c => c.nombre.toLowerCase() === nombreBuscado.toLowerCase());
+
+            if (!categoria) {
+                try {
+                    const categoriaId = await stockGastosModel.crearCategoria(usuarioId, nombreBuscado);
+                    categoria = { id: categoriaId, nombre: nombreBuscado };
+                } catch (error) {
+                    if (error.code === 'ER_DUP_ENTRY') {
+                        const categoriasActualizadas = await stockGastosModel.obtenerCategorias(usuarioId);
+                        categoria = categoriasActualizadas.find(c => c.nombre.toLowerCase() === nombreBuscado.toLowerCase());
+                    }
+                    if (!categoria) {
+                        console.error("Error creando categoría desde WalterBot:", error);
+                        d.categoriaNombre = null;
+                        estado.paso = 'categoria';
+                        return "Tuve un problema para crear esa categoría. Decime el nombre de nuevo.";
+                    }
+                }
+            }
+            d.categoria = categoria;
+        }
+
+        if (!d.monto) {
+            estado.paso = 'monto';
+            return `Categoría: ${d.categoria.nombre}. ¿Cuánto gastaste? (monto en pesos)`;
+        }
+
+        if (d.descripcion === undefined) {
+            estado.paso = 'descripcion';
+            return "¿Querés agregar una descripción? (o decime \"ninguna\")";
+        }
+
+        return await this.ejecutarRegistrarGasto(req);
+    }
+
+    async ejecutarRegistrarGasto(req) {
+        const estado = req.session.asistente;
+        const usuarioId = req.session.usuario.id;
+        const d = estado.datos;
+
+        const fechaGasto = d.fecha_gasto || obtenerFechaLocal();
+        const descripcion = d.descripcion || null;
+
+        await stockGastosModel.registrarGasto(usuarioId, d.categoria.id, d.monto, descripcion, fechaGasto);
+
+        const msg = `Listo ✅ Registré un gasto de $${formatearMoneda(d.monto)} en "${d.categoria.nombre}"` +
+            (descripcion ? ` (${descripcion})` : '') +
+            ` con fecha ${formatearFecha(fechaGasto)}.`;
+
+        req.session.asistente = estadoVacio();
+        return msg;
     }
 }
 
