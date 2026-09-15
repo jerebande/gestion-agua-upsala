@@ -17,6 +17,7 @@ const routerclientes = require("./routers/clientes");
 const routerconf = require("./routers/routerconf");
 const routerchat = require("./routers/chat");
 const routerStockGastos = require("./routers/stockGastos"); // ⭐ NUEVO
+const routerAsistente = require("./routers/asistente"); // ⭐ NUEVO - Chatbot/Asistente
 
 // Usar el puerto proporcionado por Hostinger
 const port = process.env.PORT || 3000;
@@ -63,6 +64,7 @@ app.use("/", routerusuarios);
 app.use("/", routerclientes);
 app.use("/", routerchat);
 app.use("/", routerStockGastos); // ⭐ NUEVO - Stock y Gastos
+app.use("/", routerAsistente); // ⭐ NUEVO - Chatbot/Asistente
 app.use("/notas", notasRoutes);
 
 // Mapa de usuarios conectados

@@ -1,0 +1,420 @@
+// controllers/asistenteController.js
+const ClienteModel = require("../models/clientes");
+const clienteModel = new ClienteModel();
+const UsuarioModel = require("../models/usuarios");
+const usuarioModel = new UsuarioModel();
+const StockGastosModel = require("../models/stockGastos");
+const stockGastosModel = new StockGastosModel();
+const { interpretarMensaje, transcribirAudio } = require("../services/asistenteNLU");
+
+function estadoVacio() {
+    return { intent: null, paso: null, datos: {} };
+}
+
+function formatearMoneda(n) {
+    return Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatearFecha(f) {
+    try { return new Date(f).toLocaleDateString('es-AR'); } catch (e) { return ''; }
+}
+
+class AsistenteController {
+
+    // ── Vista del chat (opcional, por si se accede directo a /asistente) ────
+    async mostrarAsistente(req, res) {
+        if (!req.session.usuario) return res.redirect("/login");
+        res.render("asistente", {
+            nombreUsuario: req.session.usuario.nombre,
+            usuarioRol: req.session.usuario.rol,
+            usuarioId: req.session.usuario.id
+        });
+    }
+
+    // ── Endpoint principal (texto) ───────────────────────────────────────────
+    async procesarMensaje(req, res) {
+        if (!req.session.usuario) return res.status(401).json({ error: "No autorizado" });
+
+        const texto = (req.body.mensaje || "").toString().trim();
+        if (!texto) return res.json({ respuesta: "Escribime algo para poder ayudarte 🙂" });
+
+        const respuesta = await this.procesarTexto(texto, req);
+        return res.json({ respuesta });
+    }
+
+    // ── Endpoint de audio: transcribe con Whisper (Groq) y sigue el mismo flujo ──
+    async procesarAudio(req, res) {
+        if (!req.session.usuario) return res.status(401).json({ error: "No autorizado" });
+        if (!req.file) return res.status(400).json({ error: "No se recibió ningún audio" });
+
+        let texto;
+        try {
+            texto = await transcribirAudio(req.file.buffer, req.file.mimetype);
+        } catch (error) {
+            console.error("Error transcribiendo audio con Groq:", error.message);
+            return res.json({
+                respuesta: "No pude transcribir el audio. Probá de nuevo o escribí el mensaje.",
+                transcripcion: null
+            });
+        }
+
+        if (!texto) {
+            return res.json({ respuesta: "No detecté ninguna voz en el audio. Probá de nuevo.", transcripcion: "" });
+        }
+
+        const respuesta = await this.procesarTexto(texto, req);
+        return res.json({ respuesta, transcripcion: texto });
+    }
+
+    // ── Lógica común: interpreta el texto (venga de teclado o de audio) y avanza la conversación ──
+    async procesarTexto(texto, req) {
+        if (!req.session.asistente) req.session.asistente = estadoVacio();
+        const estado = req.session.asistente;
+
+        // Atajo rápido y gratis, sin llamar a la IA, para cancelar
+        if (/^(cancelar|salir|volver|olvidalo|dejalo)$/i.test(texto)) {
+            req.session.asistente = estadoVacio();
+            return "Listo, cancelé la operación. ¿En qué más te ayudo?";
+        }
+
+        let extraido;
+        try {
+            extraido = await interpretarMensaje(texto, estado, req.session.usuario.rol);
+        } catch (error) {
+            console.error("Error interpretando mensaje con Groq:", error.message);
+            return "No pude entender el mensaje porque hubo un problema para conectarme con el motor de lenguaje. Probá de nuevo en un momento.";
+        }
+
+        if (extraido.cancelar) {
+            req.session.asistente = estadoVacio();
+            return "Listo, cancelé la operación. ¿En qué más te ayudo?";
+        }
+
+        try {
+            let respuesta;
+
+            if (!estado.intent) {
+                if (!extraido.intent || extraido.intent === 'otro') {
+                    respuesta = this.mensajeAyuda();
+                } else {
+                    estado.intent = extraido.intent;
+                    estado.datos = {};
+                    this.mergearDatos(estado, extraido);
+                    respuesta = await this.avanzar(req);
+                }
+            } else {
+                this.mergearDatos(estado, extraido);
+                respuesta = await this.avanzar(req);
+            }
+
+            return respuesta;
+        } catch (error) {
+            console.error("Error en WalterBot:", error);
+            req.session.asistente = estadoVacio();
+            return "Uy, hubo un error del servidor. Probá de nuevo.";
+        }
+    }
+
+    mensajeAyuda() {
+        return "Soy WalterBot 🤖. Puedo ayudarte a:\n" +
+            "• Crear un cliente nuevo (ej: \"creá un cliente que se llama Juan Pérez, vive en Av Siempre Viva 742, el tel es 1122334455, reparto los lunes\")\n" +
+            "• Registrar una entrega (ej: \"a Juan Pérez llevale 3 bidones, quedó fiado\")\n" +
+            "• Saldar un fiado (ej: \"cobrale el fiado a Juan, pagó todo en efectivo\")\n" +
+            "• Cambiar el precio del bidón (ej: \"el bidón ahora sale 2500\")\n\n" +
+            "Contame todo junto, como quieras decirlo, y voy completando lo que falte. En cualquier momento podés escribir \"cancelar\".";
+    }
+
+    // Vuelca lo que Groq extrajo del mensaje sobre los datos ya guardados de la conversación,
+    // sin pisar lo que ya estaba confirmado.
+    mergearDatos(estado, ex) {
+        const d = estado.datos;
+
+        if (estado.intent === 'crear_cliente') {
+            if (ex.nombre && !d.nombre) d.nombre = ex.nombre;
+            if (ex.direccion && !d.direccion) d.direccion = ex.direccion;
+            if (ex.telefono !== null && ex.telefono !== undefined && d.telefono === undefined) d.telefono = ex.telefono;
+            if (ex.dia_reparto && !d.dia_reparto) d.dia_reparto = ex.dia_reparto;
+            return;
+        }
+
+        if (estado.intent === 'registrar_venta') {
+            if (estado.paso === 'elegir_cliente' && ex.eleccion_numero) {
+                const elegido = (d.opciones || [])[ex.eleccion_numero - 1];
+                if (elegido) { d.cliente = elegido; delete d.opciones; }
+            }
+            if (!d.cliente && ex.cliente_nombre_buscar) d.clienteNombre = ex.cliente_nombre_buscar;
+            if (ex.cantidad_bidones != null && !d.cantidad_bidones && !d.monto) d.cantidad_bidones = ex.cantidad_bidones;
+            if (ex.monto != null && !d.cantidad_bidones && !d.monto) d.monto = ex.monto;
+            if (ex.estado_pago != null && (d.estado_pago === undefined || d.estado_pago === null)) d.estado_pago = ex.estado_pago;
+            return;
+        }
+
+        if (estado.intent === 'pagar_fiado') {
+            if (estado.paso === 'elegir_cliente' && ex.eleccion_numero) {
+                const elegido = (d.opciones || [])[ex.eleccion_numero - 1];
+                if (elegido) { d.clienteActual = elegido; delete d.opciones; }
+            }
+            if (!d.clienteActual && ex.cliente_nombre_buscar) d.clienteNombre = ex.cliente_nombre_buscar;
+            if (estado.paso === 'elegir_cuenta' && ex.eleccion_numero) {
+                const elegida = (d.cuentas || [])[ex.eleccion_numero - 1];
+                if (elegida) d.cuenta = elegida;
+            }
+            if (ex.tipo_saldo && !d.tipo) d.tipo = ex.tipo_saldo;
+            if (ex.monto_parcial != null && !d.montoParcial) d.montoParcial = ex.monto_parcial;
+            if (ex.metodo_pago != null && !d.metodoPago) d.metodoPago = ex.metodo_pago;
+            return;
+        }
+
+        if (estado.intent === 'cambiar_precio') {
+            if (ex.nuevo_precio != null && !d.nuevo_precio) d.nuevo_precio = ex.nuevo_precio;
+            return;
+        }
+    }
+
+    async avanzar(req) {
+        const estado = req.session.asistente;
+        switch (estado.intent) {
+            case 'crear_cliente': return await this.avanzarCrearCliente(req);
+            case 'registrar_venta': return await this.avanzarRegistrarVenta(req);
+            case 'pagar_fiado': return await this.avanzarPagarFiado(req);
+            case 'cambiar_precio': return await this.avanzarCambiarPrecio(req);
+            default:
+                req.session.asistente = estadoVacio();
+                return this.mensajeAyuda();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CREAR CLIENTE
+    // ═══════════════════════════════════════════════════════════════════════
+    async avanzarCrearCliente(req) {
+        const estado = req.session.asistente;
+        const rol = req.session.usuario.rol;
+        const d = estado.datos;
+
+        if (!d.nombre) {
+            estado.paso = 'nombre';
+            return "Dale, vamos a crear un cliente nuevo. ¿Cuál es el nombre?";
+        }
+        if (!d.direccion) {
+            estado.paso = 'domicilio';
+            return `Nombre: ${d.nombre}. ¿Cuál es el domicilio?`;
+        }
+        if (d.telefono === undefined) {
+            estado.paso = 'telefono';
+            return "¿Y el número de teléfono? (si no tenés, decime \"ninguno\")";
+        }
+        if (rol === 'gabriel' && !d.dia_reparto) {
+            estado.paso = 'dia';
+            return "¿Qué día le corresponde el reparto? (lunes, martes, miércoles, jueves, viernes o sábado)";
+        }
+        return await this.confirmarCrearCliente(req);
+    }
+
+    async confirmarCrearCliente(req) {
+        const estado = req.session.asistente;
+        const usuarioId = req.session.usuario.id;
+        const { nombre, direccion, telefono, dia_reparto } = estado.datos;
+
+        await clienteModel.guardarCliente({
+            nombre, direccion, telefono,
+            usuario_id: usuarioId,
+            dia_reparto: dia_reparto || null
+        });
+
+        req.session.asistente = estadoVacio();
+        let msg = `Listo ✅ Creé el cliente "${nombre}"`;
+        if (direccion) msg += ` en ${direccion}`;
+        if (dia_reparto) msg += ` (reparto los ${dia_reparto})`;
+        msg += ".";
+        return msg;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CAMBIAR PRECIO DEL BIDÓN
+    // ═══════════════════════════════════════════════════════════════════════
+    async avanzarCambiarPrecio(req) {
+        const estado = req.session.asistente;
+        const d = estado.datos;
+
+        if (d.nuevo_precio == null || isNaN(d.nuevo_precio) || d.nuevo_precio <= 0) {
+            estado.paso = 'nuevo_precio';
+            return "Dale, ¿cuál es el nuevo precio del bidón?";
+        }
+
+        const usuarioId = req.session.usuario.id;
+        await usuarioModel.actualizarPrecioUsuario(usuarioId, d.nuevo_precio);
+
+        const nuevoPrecio = d.nuevo_precio;
+        req.session.asistente = estadoVacio();
+        return `Listo ✅ Actualicé el precio del bidón a $${formatearMoneda(nuevoPrecio)}.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // REGISTRAR VENTA / ENTREGA
+    // ═══════════════════════════════════════════════════════════════════════
+    async avanzarRegistrarVenta(req) {
+        const estado = req.session.asistente;
+        const usuarioId = req.session.usuario.id;
+        const d = estado.datos;
+
+        if (!d.cliente) {
+            if (!d.clienteNombre) {
+                estado.paso = 'cliente';
+                return "¿A qué cliente? (decime el nombre)";
+            }
+            const clientes = await clienteModel.obtenerClientesFiltrados(usuarioId, d.clienteNombre);
+            if (!clientes || clientes.length === 0) {
+                const buscado = d.clienteNombre;
+                d.clienteNombre = null;
+                estado.paso = 'cliente';
+                return `No encontré ningún cliente que coincida con "${buscado}". Decime el nombre de nuevo, o escribí "cancelar".`;
+            }
+            if (clientes.length > 1) {
+                estado.paso = 'elegir_cliente';
+                d.opciones = clientes.slice(0, 8);
+                const lista = d.opciones.map((c, i) => `${i + 1}. ${c.nombre}${c.direccion ? ' - ' + c.direccion : ''}`).join("\n");
+                return `Encontré varios clientes, decime el número:\n${lista}`;
+            }
+            d.cliente = clientes[0];
+        }
+
+        if (!d.cantidad_bidones && !d.monto) {
+            estado.paso = 'cantidad';
+            return `Cliente: ${d.cliente.nombre}. ¿Cuántos bidones le llevás? (o decime un monto en pesos)`;
+        }
+
+        if (d.estado_pago === undefined || d.estado_pago === null) {
+            estado.paso = 'estado_pago';
+            return "¿Cómo quedó? Pagado, fiado o transferencia.";
+        }
+
+        return await this.ejecutarVenta(req);
+    }
+
+    async ejecutarVenta(req) {
+        const estado = req.session.asistente;
+        const usuarioId = req.session.usuario.id;
+        const d = estado.datos;
+        const cliente = d.cliente;
+
+        let cantidadFinal, precio_bidon, total;
+        if (d.monto) {
+            cantidadFinal = d.monto;
+            precio_bidon = 1;
+            total = d.monto;
+        } else {
+            precio_bidon = await usuarioModel.obtenerPrecioUsuario(usuarioId);
+            cantidadFinal = d.cantidad_bidones;
+            total = cantidadFinal * precio_bidon;
+        }
+
+        await clienteModel.agregarCuenta({
+            cliente_id: cliente.id,
+            estado_pago: d.estado_pago,
+            cantidad_bidones: cantidadFinal,
+            precio_bidon,
+            total
+        });
+
+        try {
+            const tipoPago = d.estado_pago == 1 ? 'Pagado' : d.estado_pago == 0 ? 'Fiado' : 'Transferencia';
+            await stockGastosModel.descontarStock(usuarioId, cantidadFinal, `Venta a ${cliente.nombre} (${tipoPago}) - vía WalterBot`);
+        } catch (e) {
+            console.error("Error al descontar stock desde WalterBot:", e);
+        }
+
+        await clienteModel.quitarEntregaHoy(cliente.id);
+
+        const tipoTexto = d.estado_pago == 1 ? 'pagada' : d.estado_pago == 0 ? 'fiada' : 'transferida';
+        req.session.asistente = estadoVacio();
+        return `Listo ✅ Registré la entrega a ${cliente.nombre} por $${formatearMoneda(total)} como ${tipoTexto}.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SALDAR FIADO
+    // ═══════════════════════════════════════════════════════════════════════
+    async avanzarPagarFiado(req) {
+        const estado = req.session.asistente;
+        const usuarioId = req.session.usuario.id;
+        const d = estado.datos;
+
+        if (!d.clienteActual) {
+            if (!d.clienteNombre) {
+                estado.paso = 'cliente';
+                return "Bien, vamos a saldar una cuenta fiada. ¿De qué cliente? (decime el nombre)";
+            }
+            const clientes = await clienteModel.obtenerClientesFiltrados(usuarioId, d.clienteNombre);
+            if (!clientes || clientes.length === 0) {
+                const buscado = d.clienteNombre;
+                d.clienteNombre = null;
+                estado.paso = 'cliente';
+                return `No encontré ningún cliente que coincida con "${buscado}". Decime el nombre de nuevo, o escribí "cancelar".`;
+            }
+            if (clientes.length > 1) {
+                estado.paso = 'elegir_cliente';
+                d.opciones = clientes.slice(0, 8);
+                const lista = d.opciones.map((c, i) => `${i + 1}. ${c.nombre}`).join("\n");
+                return `Encontré varios, decime el número:\n${lista}`;
+            }
+            d.clienteActual = clientes[0];
+        }
+
+        if (!d.cuenta) {
+            if (!d.cuentas) {
+                const fiados = await clienteModel.obtenerCuentasFiadasPorCliente(d.clienteActual.id);
+                if (!fiados || fiados.length === 0) {
+                    const nombreCliente = d.clienteActual.nombre;
+                    req.session.asistente = estadoVacio();
+                    return `${nombreCliente} no tiene cuentas fiadas pendientes. ¿Te ayudo con algo más?`;
+                }
+                d.cuentas = fiados;
+            }
+            if (d.cuentas.length === 1) {
+                d.cuenta = d.cuentas[0];
+            } else {
+                estado.paso = 'elegir_cuenta';
+                const lista = d.cuentas.map((c, i) =>
+                    `${i + 1}. $${formatearMoneda(c.total)} - ${c.cantidad_bidones} bidones (${formatearFecha(c.fecha_publicacion)})`
+                ).join("\n");
+                return `Cuentas fiadas de ${d.clienteActual.nombre}:\n${lista}\n\nDecime el número de la cuenta que querés saldar.`;
+            }
+        }
+
+        if (!d.tipo) {
+            estado.paso = 'tipo_saldo';
+            return `Cuenta de $${formatearMoneda(d.cuenta.total)} (${d.cuenta.cantidad_bidones} bidones). ¿Pago completo o parcial?`;
+        }
+
+        if (d.tipo === 'parcial' && !d.montoParcial) {
+            estado.paso = 'monto_parcial';
+            return `¿Cuánto te pagó? (el total de la cuenta es $${formatearMoneda(d.cuenta.total)})`;
+        }
+
+        if (!d.metodoPago) {
+            estado.paso = d.tipo === 'completo' ? 'metodo_completo' : 'metodo_parcial';
+            return "¿Cómo se pagó? Efectivo o transferencia.";
+        }
+
+        return await this.ejecutarSaldo(req);
+    }
+
+    async ejecutarSaldo(req) {
+        const estado = req.session.asistente;
+        const d = estado.datos;
+        const cliente = d.clienteActual;
+
+        if (d.tipo === 'completo') {
+            await clienteModel.actualizarEstadoPago(d.cuenta.id, d.metodoPago);
+            req.session.asistente = estadoVacio();
+            return `Listo ✅ Marqué la cuenta de ${cliente.nombre} como ${d.metodoPago === 1 ? 'pagada (efectivo)' : 'transferencia'}.`;
+        } else {
+            await clienteModel.registrarPagoParcial(d.cuenta.id, d.montoParcial, d.metodoPago);
+            const montoParcial = d.montoParcial;
+            req.session.asistente = estadoVacio();
+            return `Listo ✅ Registré un pago parcial de $${formatearMoneda(montoParcial)} (${d.metodoPago === 1 ? 'efectivo' : 'transferencia'}) para ${cliente.nombre}.`;
+        }
+    }
+}
+
+module.exports = AsistenteController;

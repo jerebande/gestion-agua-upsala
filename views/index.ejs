@@ -2142,5 +2142,347 @@
             if (e.target === this) cerrarModalVenta();
         });
     </script>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         🤖 WIDGET DEL ASISTENTE (chatbot flotante)
+    ═══════════════════════════════════════════════════════════════ -->
+    <style>
+        .asistente-fab {
+            position: fixed;
+            bottom: 100px;
+            right: 22px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: #1565c0;
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            cursor: pointer;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .asistente-fab:hover { filter: brightness(1.1); }
+
+        .asistente-panel {
+            position: fixed;
+            bottom: 168px;
+            right: 22px;
+            width: 340px;
+            max-width: calc(100vw - 30px);
+            height: 480px;
+            max-height: calc(100vh - 120px);
+            background: #eef1f5;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 2000;
+        }
+
+        .asistente-panel.abierto { display: flex; }
+
+        .asistente-panel-header {
+            background: #1565c0;
+            color: white;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .asistente-panel-header h3 { font-size: 0.95rem; }
+        .asistente-panel-header .sub { font-size: 0.7rem; opacity: 0.85; }
+        .asistente-panel-header button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .asistente-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 10px;
+            flex-shrink: 0;
+            background: #eef1f5;
+        }
+
+        .asistente-chip {
+            background: white;
+            border: 1px solid #1565c0;
+            color: #1565c0;
+            border-radius: 16px;
+            padding: 4px 10px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .asistente-chip:hover { background: #1565c0; color: white; }
+
+        .asistente-mensajes {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .asistente-msg {
+            max-width: 82%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.35;
+            white-space: pre-wrap;
+        }
+
+        .asistente-msg.bot {
+            background: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 3px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
+        .asistente-msg.user {
+            background: #1565c0;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 3px;
+        }
+
+        .asistente-msg.typing { font-style: italic; color: #888; }
+
+        .asistente-input-row {
+            display: flex;
+            gap: 6px;
+            padding: 10px;
+            background: white;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .asistente-input-row input {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .asistente-input-row input:focus { border-color: #1565c0; }
+
+        .asistente-input-row button {
+            background: #1565c0;
+            color: white;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .asistente-input-row button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        #asistenteBtnMic.grabando {
+            background: #d32f2f;
+            animation: asistente-pulso 1.2s infinite;
+        }
+
+        @keyframes asistente-pulso {
+            0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+        }
+
+        @media (max-width: 480px) {
+            .asistente-panel {
+                right: 10px;
+                bottom: 158px;
+                width: calc(100vw - 20px);
+            }
+            .asistente-fab { bottom: 94px; right: 16px; }
+        }
+    </style>
+
+    <button class="asistente-fab" id="asistenteFab" onclick="toggleAsistente()">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <div class="asistente-panel" id="asistentePanel">
+        <div class="asistente-panel-header">
+            <div>
+                <h3>🤖 WalterBot</h3>
+                <div class="sub">Creá clientes y registrá pagos</div>
+            </div>
+            <button onclick="toggleAsistente()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="asistente-chips">
+            <div class="asistente-chip" onclick="asistenteSugerencia('Crear cliente nuevo')">Crear cliente</div>
+            <div class="asistente-chip" onclick="asistenteSugerencia('Registrar una entrega')">Registrar entrega</div>
+            <div class="asistente-chip" onclick="asistenteSugerencia('Pagar un fiado')">Pagar fiado</div>
+            <div class="asistente-chip" onclick="asistenteSugerencia('cancelar')">Cancelar</div>
+        </div>
+        <div class="asistente-mensajes" id="asistenteMensajes"></div>
+        <div class="asistente-input-row">
+            <input type="text" id="asistenteInput" placeholder="Escribí o grabá un audio..." autocomplete="off">
+            <button id="asistenteBtnMic" onclick="asistenteToggleGrabacion()" title="Enviar audio"><i class="fas fa-microphone"></i></button>
+            <button id="asistenteBtnEnviar" onclick="asistenteEnviar()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            let asistenteAbierto = false;
+            let asistenteInicializado = false;
+
+            window.toggleAsistente = function() {
+                asistenteAbierto = !asistenteAbierto;
+                document.getElementById('asistentePanel').classList.toggle('abierto', asistenteAbierto);
+                if (asistenteAbierto) {
+                    document.getElementById('asistenteInput').focus();
+                    if (!asistenteInicializado) {
+                        asistenteInicializado = true;
+                        asistenteAgregarMensaje('Hola 👋 Soy WalterBot, tu asistente. Contame lo que necesitás (crear un cliente, registrar una entrega o saldar un fiado) y lo resuelvo, aunque me lo digas todo junto.', 'bot');
+                    }
+                }
+            };
+
+            window.asistenteAgregarMensaje = function(texto, clase) {
+                const cont = document.getElementById('asistenteMensajes');
+                const div = document.createElement('div');
+                div.className = 'asistente-msg ' + clase;
+                div.textContent = texto;
+                cont.appendChild(div);
+                cont.scrollTop = cont.scrollHeight;
+                return div;
+            };
+
+            window.asistenteSugerencia = function(texto) {
+                document.getElementById('asistenteInput').value = texto;
+                asistenteEnviar();
+            };
+
+            window.asistenteEnviar = async function() {
+                const input = document.getElementById('asistenteInput');
+                const btn = document.getElementById('asistenteBtnEnviar');
+                const texto = input.value.trim();
+                if (!texto) return;
+
+                asistenteAgregarMensaje(texto, 'user');
+                input.value = '';
+                btn.disabled = true;
+                const typingDiv = asistenteAgregarMensaje('Escribiendo...', 'bot typing');
+
+                try {
+                    const res = await fetch('/api/asistente/mensaje', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mensaje: texto })
+                    });
+                    const data = await res.json();
+                    typingDiv.remove();
+                    asistenteAgregarMensaje(data.respuesta || 'No pude procesar el mensaje.', 'bot');
+                } catch (e) {
+                    typingDiv.remove();
+                    asistenteAgregarMensaje('Error de conexión. Probá de nuevo.', 'bot');
+                } finally {
+                    btn.disabled = false;
+                    input.focus();
+                }
+            };
+
+            // ── Grabación y envío de audio ───────────────────────────────────
+            let asistenteMediaRecorder = null;
+            let asistenteAudioChunks = [];
+            let asistenteGrabando = false;
+
+            window.asistenteToggleGrabacion = async function() {
+                if (asistenteGrabando) {
+                    asistenteMediaRecorder.stop();
+                    return;
+                }
+
+                if (!navigator.mediaDevices || !window.MediaRecorder) {
+                    asistenteAgregarMensaje('Tu navegador no permite grabar audio. Probá escribiendo el mensaje.', 'bot');
+                    return;
+                }
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    asistenteAudioChunks = [];
+                    asistenteMediaRecorder = new MediaRecorder(stream);
+
+                    asistenteMediaRecorder.ondataavailable = function(e) {
+                        if (e.data && e.data.size > 0) asistenteAudioChunks.push(e.data);
+                    };
+
+                    asistenteMediaRecorder.onstop = async function() {
+                        stream.getTracks().forEach(t => t.stop());
+                        document.getElementById('asistenteBtnMic').classList.remove('grabando');
+                        asistenteGrabando = false;
+                        const blob = new Blob(asistenteAudioChunks, { type: 'audio/webm' });
+                        if (blob.size > 0) await asistenteEnviarAudio(blob);
+                    };
+
+                    asistenteMediaRecorder.start();
+                    asistenteGrabando = true;
+                    document.getElementById('asistenteBtnMic').classList.add('grabando');
+                } catch (e) {
+                    asistenteAgregarMensaje('No pude acceder al micrófono. Revisá los permisos del navegador.', 'bot');
+                }
+            };
+
+            window.asistenteEnviarAudio = async function(blob) {
+                const btnEnviar = document.getElementById('asistenteBtnEnviar');
+                const btnMic = document.getElementById('asistenteBtnMic');
+                btnEnviar.disabled = true;
+                btnMic.disabled = true;
+                const typingDiv = asistenteAgregarMensaje('Escuchando el audio...', 'bot typing');
+
+                try {
+                    const formData = new FormData();
+                    formData.append('audio', blob, 'audio.webm');
+                    const res = await fetch('/api/asistente/audio', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    typingDiv.remove();
+                    if (data.transcripcion) {
+                        asistenteAgregarMensaje(data.transcripcion, 'user');
+                    }
+                    asistenteAgregarMensaje(data.respuesta || 'No pude procesar el audio.', 'bot');
+                } catch (e) {
+                    typingDiv.remove();
+                    asistenteAgregarMensaje('Error de conexión al enviar el audio.', 'bot');
+                } finally {
+                    btnEnviar.disabled = false;
+                    btnMic.disabled = false;
+                }
+            };
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const input = document.getElementById('asistenteInput');
+                if (input) {
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') asistenteEnviar();
+                    });
+                }
+            });
+        })();
+    </script>
 </body> 
 </html>

@@ -183,6 +183,18 @@ class ClienteModel {
         return rows.length > 0 ? rows[0] : null;
     }
 
+    // Cuentas fiadas (estado_pago = 0) de un cliente, sin paginar — usadas por el asistente/chatbot
+    async obtenerCuentasFiadasPorCliente(clienteId) {
+        const sql = `
+            SELECT id, cliente_id, cantidad_bidones, precio_bidon, total, fecha_publicacion
+            FROM cuentas
+            WHERE cliente_id = ? AND estado_pago = 0
+            ORDER BY fecha_publicacion ASC
+        `;
+        const [rows] = await pool.query(sql, [clienteId]);
+        return rows;
+    }
+
     async guardarCliente({ nombre, direccion, telefono, usuario_id, dia_reparto = null }) {
         const query = `
             INSERT INTO clientes (nombre, direccion, telefono, usuario_id, bidones_adeudados, dia_reparto)

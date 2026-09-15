@@ -71,6 +71,9 @@ class UsuarioController {
 
             todosLosClientes.sort((a, b) => {
                 if (a.entrega_hoy === b.entrega_hoy) {
+                    if (rol === 'gabriel') {
+                        return a.id - b.id; // orden de carga en la tabla (más viejo primero)
+                    }
                     return (a.nombre || '').localeCompare(b.nombre || '');
                 }
                 return b.entrega_hoy ? 1 : -1;
