@@ -1825,19 +1825,11 @@
         // ── Cargar categorías ─────────────────────────────────────────────────
         async function cargarCategorias() {
             try {
-                const res = await fetch('/api/gastos');
+                const res = await fetch('/api/categorias-gastos');
                 const data = await res.json();
-                
-                const catsMap = new Map();
-                if (data.gastos) {
-                    data.gastos.forEach(g => {
-                        if (!catsMap.has(g.categoria_id)) {
-                            catsMap.set(g.categoria_id, g.categoria_nombre);
-                        }
-                    });
-                }
-                categoriasGastos = Array.from(catsMap.entries()).map(([id, nombre]) => ({ id, nombre }));
-                
+
+                categoriasGastos = (data.categorias || []).map(c => ({ id: c.id, nombre: c.nombre }));
+
                 actualizarSelectCategorias();
             } catch (e) {
                 console.error('Error al cargar categorías:', e);

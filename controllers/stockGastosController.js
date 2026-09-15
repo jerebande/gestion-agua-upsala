@@ -127,6 +127,22 @@ class StockGastosController {
         }
     }
 
+    async obtenerCategoriasAPI(req, res) {
+        if (!req.session.usuario || req.session.usuario.rol !== 'gabriel') {
+            return res.status(403).json({ error: "No autorizado" });
+        }
+
+        const usuarioId = req.session.usuario.id;
+
+        try {
+            const categorias = await stockGastosModel.obtenerCategorias(usuarioId);
+            res.json({ categorias });
+        } catch (error) {
+            console.error("Error al obtener categorías:", error);
+            res.status(500).json({ error: "Error del servidor" });
+        }
+    }
+
     async eliminarCategoria(req, res) {
         if (!req.session.usuario || req.session.usuario.rol !== 'gabriel') {
             return res.status(403).json({ error: "No autorizado" });

@@ -30,6 +30,7 @@ router.get("/api/stock", verificarAutenticado, (req, res) => stockGastosControll
 router.post("/api/stock/actualizar", verificarAutenticado, (req, res) => stockGastosController.actualizarStock(req, res));
 
 // API Categorías
+router.get("/api/categorias-gastos", soloGabriel, (req, res) => stockGastosController.obtenerCategoriasAPI(req, res));
 router.post("/api/categorias-gastos", soloGabriel, (req, res) => stockGastosController.crearCategoria(req, res));
 router.delete("/api/categorias-gastos/:id", soloGabriel, (req, res) => stockGastosController.eliminarCategoria(req, res));
 
